@@ -30,8 +30,7 @@ from combocizes.utils import OUTPUT_DIR, ensure_dir, get_logger
 log = get_logger(__name__)
 
 
-def main() -> None:
-    ...
+def main() -> None: ...
 
 
 if __name__ == "__main__":

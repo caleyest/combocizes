@@ -4,8 +4,10 @@
 [![Docs](https://github.com/caleyest/combocizes/actions/workflows/docs.yml/badge.svg)](https://caleyest.github.io/combocizes/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **TODO:** replace this with a paragraph describing what the project does, who
-> it's for, and any caveats about how the results should be used.
+Combocizes builds full-body workout class scripts — combinations of dumbbell,
+bodyweight, and resistance band exercises — from a structured exercise
+dictionary. It's for instructors and coaches who plan class sequences and want
+generated, varied combos instead of writing them by hand.
 
 📖 **[Documentation](https://caleyest.github.io/combocizes/)** · 📊 **[Reports](https://caleyest.github.io/combocizes/quarto/report.html)**
 

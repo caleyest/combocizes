@@ -2,7 +2,9 @@
 
 ## General
 
-- **TODO:** describe what combocizes is and who it's for.
+- Combocizes builds full-body workout class scripts — combinations of dumbbell,
+  bodyweight, and resistance band exercises — from a structured exercise
+  dictionary, for instructors and coaches planning class sequences.
 - Source code lives in `src/combocizes/`, runnable entry points in `scripts/`,
   Quarto reports in `quarto/`, prose documentation in `docs/`.
 - Logic flows one way: scripts and reports import the package; the package never

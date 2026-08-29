@@ -1,7 +1,7 @@
 [project]
 name = "combocizes"
 version = "0.1.0"
-description = "TODO: one-line description of what combocizes does."
+description = "Builds full-body workout class scripts from a structured exercise dictionary of dumbbell, bodyweight, and resistance band exercises."
 readme = "README.md"
 authors = [{ name = "caleyest" }]
 requires-python = ">=3.12"

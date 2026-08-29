@@ -45,7 +45,7 @@ Distinct from equipment position: the body part doing the work often isn't the o
 
 Example — reverse lunge with dumbbells: `equipment_position: "racked"` (unchanged throughout) alongside `mover: "leg"`, `mover_position_start: "standing"`, `mover_position_end: "lunge_back"`. The equipment doesn't travel; the leg does.
 
-**Open question:** `mover_position` vocabulary isn't defined yet (unlike equipment positions, body-part travel states are less standardized) — deferred, see section 6.
+**Open question:** `mover_position` vocabulary isn't defined yet (unlike equipment positions, body-part travel states are less standardized) — deferred, see section 7.
 
 Resolution at build time: pick equipment first → shallow-merge `base + overrides[combo_key]` → resolved variant.
 
@@ -92,7 +92,23 @@ CUE_BANK = {
 
 **Open question:** plyo/continuous-tempo exercises may need a different cue shape than breath-per-rep (setup cue + safety/landing cue + pacing cue, no per-rep breath). Not yet resolved.
 
-## 3. Class Template (fixed format, drives generation)
+## 3. Data Layout
+
+### Format: Python, not YAML/JSON
+
+Each exercise and cue is authored directly as a Python object (dataclass instance), not YAML/JSON. Since equipment combos are per-category boolean flags and refinement cues are referenced by ID, a Python data file can reference the same constants used elsewhere — `DUMBBELL_POSITIONS`, `BAND_POSITIONS`, the `movement_pattern` enum, `CUE_BANK` IDs — instead of duplicating them as bare strings that can silently drift out of sync with the enum. A `@dataclass` with `__post_init__` validation (asserting equipment flags are drawn from the known set, `movement_pattern` is a valid value, referenced cue IDs exist, etc.) catches authoring typos at import time rather than only when the generator runs, without needing a separate schema-validation library (pydantic/jsonschema) for something the project already has enum/constant machinery for. Trade-off: less safe to hand-edit blind than YAML, since loading a file executes code — acceptable here since this is a single-maintainer Python project, not a format meant for non-programmers to edit.
+
+### Exercises: one file per exercise
+
+`exercises/` is a flat directory, one file per exercise, named `{muscle_group}_{name}.py` (e.g. `biceps_hammer_curl.py`, `quads_reverse_lunge.py`). The filename prefix gives fast visual grouping by muscle group in any directory listing/sort, without creating a folder hierarchy that has to be physically reorganized if an exercise is ever reclassified — renaming a file is a one-line diff, moving it between nested folders isn't. A loader function globs the directory, imports each file's exercise object, and combines them into the pool the generator selects from; this parsing step is cheap and runs once at startup, not per-generation.
+
+Nested folders by `movement_pattern` were considered (only 7 stable values, less prone to reclassification than `muscle_group`) but rejected in favor of the filename convention, since `muscle_group` is the axis actually used for browsing/editing exercises, not `movement_pattern`.
+
+### Cues: category files, not one-per-cue
+
+Refinement cues stay grouped, not split one-per-file — each cue is only 3-4 lines, so hundreds of near-empty files would be harder to browse than the single large dict this split is meant to avoid. Instead, `CUE_BANK` is split across a handful of category files (`cues/upper.py`, `cues/lower.py`, `cues/core.py`, `cues/plyo.py`), each exposing a local dict; the same loader merges them into one `CUE_BANK` at import time — the same "split for readability, combine cheaply at load" pattern as exercises, just at a coarser grain.
+
+## 4. Class Template (fixed format, drives generation)
 
 | Segment | Duration | Count | Position | Notes |
 |---|---|---|---|---|
@@ -101,24 +117,24 @@ CUE_BANK = {
 | Arms-only song | 3-5 min | 1 | flexible, middle | filters on `muscle_group` |
 | Legs-only song | 5 min | 1 | flexible, middle | filters on `muscle_group` |
 | Abs-only song | 3-5 min | 1 | flexible, middle | filters on `muscle_group` |
-| Full-body combos | remainder (~19-24 min typical) | fills gaps | flexible | main use of movement-pattern variety logic; no transition cost applied within a song, see section 4 |
+| Full-body combos | remainder (~19-24 min typical) | fills gaps | flexible | main use of movement-pattern variety logic; no transition cost applied within a song, see section 5 |
 | Cooldown | ~5 min | 1 | fixed last | last 90 sec = savasana |
 
 **Ordering rule:** don't cluster plyo bursts or focus-songs back to back — intersperse with full-body combo stretches to manage the intensity curve.
 
-**Transition cost applies only at song/segment boundaries, not between moves within a song.** Moves inside a song/combo are assumed to flow seamlessly — the instructor's own sequencing (movement-pattern variety, natural exercise chaining) handles internal flow, not a cost function. The only place the generator scores a transition is the handoff between one segment's last exercise and the next segment's first exercise. See section 4 for what that comparison uses.
+**Transition cost applies only at song/segment boundaries, not between moves within a song.** Moves inside a song/combo are assumed to flow seamlessly — the instructor's own sequencing (movement-pattern variety, natural exercise chaining) handles internal flow, not a cost function. The only place the generator scores a transition is the handoff between one segment's last exercise and the next segment's first exercise. See section 5 for what that comparison uses.
 
 Worked time budget (60 min class, midpoint durations): warmup 6 + plyo 12 + arms 4 + legs 5 + abs 4 + cooldown 5 = 36 min fixed/ranged → **~24 min left for full-body combos**. At 50 min (low end of each range): 31 min fixed → **~19 min for full-body combos**.
 
-## 4. Generator Architecture
+## 5. Generator Architecture
 
-- **One parameterized combo-selection function** — "select N exercises from a filtered pool, respecting movement-pattern variety, fit to a time budget" — reused for plyo bursts, focus songs, and full-body combos, just configured differently per `ClassTemplate` segment (pool filter, exercise count, timing scheme). No transition-cost weighting inside this selection — moves within a segment are assumed to flow seamlessly (see section 3).
+- **One parameterized combo-selection function** — "select N exercises from a filtered pool, respecting movement-pattern variety, fit to a time budget" — reused for plyo bursts, focus songs, and full-body combos, just configured differently per `ClassTemplate` segment (pool filter, exercise count, timing scheme). No transition-cost weighting inside this selection — moves within a segment are assumed to flow seamlessly (see section 4).
 - **Transition-cost model, applied only at segment boundaries**: compares the **last exercise of segment N** to the **first exercise of segment N+1** on two fields — `body_position` (same → free, different → cost, since e.g. standing→supine means getting down on the floor) and equipment identity (same equipment → free, different equipment → cost, since it means physically swapping gear). `equipment_position` is *not* part of this comparison — it's static per exercise and gets re-established fresh at the start of any new song regardless of what the previous song ended in.
 - Resolution order per exercise instance: choose equipment → resolve position/cue overrides → place in sequence.
 
-**Follow-on idea (not built for v1):** the segment-boundary model guarantees no full reset (no equipment swap, no floor/standing switch) but doesn't guarantee ergonomically elegant chaining *within* a song. That finer quality — e.g. hammer curl ending near the shoulders flowing straight into an overhead press starting racked — comes from `mover_position_end` of one exercise matching `mover_position_start` of the next, not from anything on the equipment side. If combo quality ever needs to be scored/optimized rather than left to curation, `mover_position` matching between consecutive exercises is the mechanism to add — deferred until `mover_position` vocabulary itself is settled (section 6).
+**Follow-on idea (not built for v1):** the segment-boundary model guarantees no full reset (no equipment swap, no floor/standing switch) but doesn't guarantee ergonomically elegant chaining *within* a song. That finer quality — e.g. hammer curl ending near the shoulders flowing straight into an overhead press starting racked — comes from `mover_position_end` of one exercise matching `mover_position_start` of the next, not from anything on the equipment side. If combo quality ever needs to be scored/optimized rather than left to curation, `mover_position` matching between consecutive exercises is the mechanism to add — deferred until `mover_position` vocabulary itself is settled (section 7).
 
-## 5. User Interface
+## 6. User Interface
 
 ### Upfront wizard questions (confirmed for v1)
 1. Class length (50/60/custom)
@@ -134,7 +150,7 @@ Worked time budget (60 min class, midpoint durations): warmup 6 + plyo 12 + arms
 ### Modality
 CLI wizard to start (prompts → draft → lock/reroll loop → export finished script to text/markdown). YAML config file as a companion for saving reusable "class recipes." A GUI (e.g. Streamlit) is a possible v2, not needed for v1.
 
-## 6. Explicitly deferred / not yet decided
+## 7. Explicitly deferred / not yet decided
 
 - Plyo cue shape (breath-per-rep vs. setup+safety+pacing)
 - Exact verb synonym-pool vocabulary

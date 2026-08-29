@@ -1,0 +1,64 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+wheels/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# uv — the lockfile IS committed; see CONTRIBUTING.md
+# uv.lock
+
+# Environment / secrets
+.env
+.env.local
+.pypirc
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Type checkers & linters
+.mypy_cache/
+.ruff_cache/
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs / editors
+.idea/
+.vscode/
+.cursor/
+*.swp
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# MkDocs build output
+site/
+
+# Script output — commit deliberately if you want a result versioned
+output/
+
+# Quarto
+/.quarto/
+*_files/
+*_cache/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,54 @@
+[project]
+name = "combocizes"
+version = "0.1.0"
+description = "TODO: one-line description of what combocizes does."
+readme = "README.md"
+authors = [{ name = "caleyest" }]
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+    "great-tables>=0.16",
+    "jupyter>=1.1",
+    "matplotlib>=3.9",
+    "plotly>=5.24",
+    "polars>=1.17",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = [
+    "mkdocs-material>=9.5",
+    "pre-commit>=4.0",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.15",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.13,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "combocizes"
+module-root = "src"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["combocizes"]

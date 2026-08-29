@@ -1,0 +1,78 @@
+---
+title: "Example Report"
+subtitle: "Starter template — copy this file to begin a new report"
+author: "caleyest"
+date: today
+format:
+  html:
+    toc: true
+    code-fold: true
+---
+
+## Overview
+
+This is a starter Quarto report. A `.qmd` file is markdown with executable
+Python chunks — rendering runs the code and embeds its output, so the numbers
+and figures below are regenerated from source every time.
+
+Render it with:
+
+```bash
+just render-one report          # HTML
+just render-one-pdf report      # PDF (needs TinyTeX)
+```
+
+## Setup
+
+```{python}
+import matplotlib.pyplot as plt
+import polars as pl
+
+from combocizes.core import summarize
+```
+
+## Data
+
+```{python}
+frame = pl.DataFrame(
+    {
+        "group": ["a", "a", "b", "b", "c"],
+        "value": [1.0, 3.0, 10.0, 12.0, 7.0],
+    }
+)
+frame
+```
+
+## Results
+
+Chunk options control what appears. `echo: false` in `_quarto.yaml` hides code
+globally; `#| echo: true` on a chunk overrides it.
+
+```{python}
+#| label: tbl-summary
+#| tbl-cap: "Value aggregated by group."
+result = summarize(frame, group_by="group", value="value")
+result
+```
+
+@tbl-summary shows the group totals. Cross-references work off the `label`.
+
+```{python}
+#| label: fig-totals
+#| fig-cap: "Total value by group."
+fig, ax = plt.subplots()
+ax.bar(result["group"], result["total"], color="#4C72B0")
+ax.set_xlabel("Group")
+ax.set_ylabel("Total value")
+ax.spines[["top", "right"]].set_visible(False)
+plt.show()
+```
+
+Inline values interpolate too: the largest group total is
+`{python} f"{result['total'].max():,.1f}"`.
+
+## Notes
+
+- Math renders with LaTeX: $\sigma^2 = \frac{1}{n}\sum_i (x_i - \bar{x})^2$
+- Import from `combocizes` directly — the package is installed in editable mode
+  by `uv sync`, so edits to `src/` are picked up without reinstalling.

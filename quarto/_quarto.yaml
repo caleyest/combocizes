@@ -1,0 +1,19 @@
+project:
+  type: default
+
+format:
+  html:
+    toc: true
+    embed-resources: true      # single self-contained .html, easy to email
+    code-fold: true            # collapse code, show results by default
+    html-math-method: webtex   # renders math as SVG; works with embed-resources
+    fig-align: center
+    fig-width: 6
+    fig-height: 4
+  pdf:
+    execute:
+      freeze: auto
+
+execute:
+  echo: false
+  warning: false

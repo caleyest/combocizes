@@ -1,0 +1,5 @@
+# Quarto intermediates. Rendered .html / .pdf are committed on purpose so
+# reports can be linked and diffed — add *.html / *.pdf here to opt out.
+/.quarto/
+*_files/
+*_cache/

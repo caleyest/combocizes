@@ -27,7 +27,8 @@ EXERCISE = Exercise(
 def test_load_exercises_returns_the_example_pool() -> None:
     pool = load_exercises()
 
-    assert set(pool) == {"reverse_lunge", "hammer_curl"}
+    # Not an exact-set check: data/exercises/ grows as exercises are authored.
+    assert {"reverse_lunge", "hammer_curl"} <= set(pool)
     assert pool["reverse_lunge"].name == "reverse_lunge"
 
 

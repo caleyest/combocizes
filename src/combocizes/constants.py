@@ -15,10 +15,10 @@ MUSCLE_GROUPS = [
     "shoulders",
     "chest",
     "back",
-    "quads",
-    "hamstrings",
-    "glutes",
-    "abs",
+    "lower",
+    "posterior",
+    "core",
+    "plyo",
 ]
 
 BODY_POSITIONS = [
@@ -91,16 +91,78 @@ MOVER_POSITIONS = {
         "standing",
         "lunge_back",
         "lunge_forward",
+        "lunge_lateral",
         "squat_bottom",
         "kneeling",
         "raised_bent",
         "raised_straight",
+        "straddle",
     ],
+    # "legs" (plural) mirrors "leg" for bilateral leg movements (both bend
+    # together, e.g. a squat) — same reasoning as "feet" vs. "leg" above.
+    "legs": ["standing", "squat_bottom", "kneeling"],
     "arm": ["at_sides", "extended", "raised", "overhead", "bent"],
     "torso": ["upright", "rotated_left", "rotated_right", "flexed_forward", "extended_back"],
     "hip": ["neutral", "hinged", "extended", "raised"],
+    "back": ["neutral", "arched"],
+    # "feet" (plural noun, not "leg") is for movements where both legs act
+    # together — "your feet" reads correctly as inherently plural, where
+    # "your leg" would wrongly imply one side.
+    "feet": ["together", "apart"],
 }
 
 # Provisional: DESIGN.md doesn't specify a real per-exercise duration, so a
 # fixed convention stands in for now (DESIGN.md section 7).
 SECONDS_PER_EXERCISE = 30
+
+# Which way the student faces on the mat, distinct from body_positions
+# (stance width/shape) -- a fast-feet drill turning to face right can't be
+# expressed by body_positions alone. Exercise.mat_orientation_start/end
+# both default to "front", so only exercises that actually turn (mostly
+# plyo) ever need to mention this.
+MAT_ORIENTATIONS = ["front", "left", "right", "back"]
+
+# DESIGN.md section 4's segment-duration ranges, collapsed to their
+# midpoints -- exactly its own "worked time budget" numbers -- so
+# combocizes.class_template.build_class can generalize to any class
+# length, not just the 50/60-minute cases DESIGN.md works through
+# explicitly.
+WARMUP_MINUTES = 6
+PLYO_TOTAL_MINUTES = 12
+ARMS_MINUTES = 4
+LEGS_MINUTES = 5
+ABS_MINUTES = 4
+COOLDOWN_MINUTES = 5
+FIXED_SEGMENT_MINUTES = (
+    WARMUP_MINUTES
+    + PLYO_TOTAL_MINUTES
+    + ARMS_MINUTES
+    + LEGS_MINUTES
+    + ABS_MINUTES
+    + COOLDOWN_MINUTES
+)
+
+# A full-body-combo stretch is sized like a typical focus song.
+FULL_BODY_STRETCH_TARGET_MINUTES = 4
+
+# DESIGN.md: "multiple exercises per burst" -- a floor above
+# exercise_count_for_duration's generic "at least 1", since the burst's
+# impact pattern needs at least 2 to mean anything.
+MIN_PLYO_BURST_EXERCISES = 2
+
+# muscle_group values driving each focus song (DESIGN.md: muscle_group is
+# the "fine-grained" field that "drives the arms/legs/abs focus songs").
+# Reflects the current MUSCLE_GROUPS taxonomy above -- update here if that
+# taxonomy changes.
+ARMS_MUSCLE_GROUPS = {"biceps", "triceps", "shoulders", "chest", "back"}
+LEGS_MUSCLE_GROUPS = {"lower", "posterior"}
+ABS_MUSCLE_GROUPS = {"core"}
+
+# Every equipment identity a segment can be assigned, bodyweight included.
+EQUIPMENT_CHOICES = [
+    dict(NO_EQUIPMENT),
+    dict(HEAVY_DUMBBELLS),
+    dict(LIGHT_DUMBBELLS),
+    dict(HEAVY_BAND),
+    dict(LIGHT_BAND),
+]

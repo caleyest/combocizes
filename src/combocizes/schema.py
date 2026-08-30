@@ -15,6 +15,7 @@ from combocizes.constants import (
     EQUIPMENT_FLAGS,
     EQUIPMENT_PHRASES,
     IMPACT_LEVELS,
+    MAT_ORIENTATIONS,
     MOVEMENT_PATTERNS,
     MOVER_POSITIONS,
     MUSCLE_GROUPS,
@@ -92,6 +93,12 @@ class Exercise:
         mover_position_end: `mover`'s position at the end of the rep. Same
             vocabulary as `mover_position_start`.
         primary_cue: The cue said once, on first appearance.
+        mat_orientation_start: Which way the student faces on the mat at
+            the start of the rep. One of `combocizes.constants.MAT_ORIENTATIONS`.
+            Defaults to `"front"` — only exercises that actually turn (e.g.
+            a plyo drill pivoting to face right) need to set this.
+        mat_orientation_end: Same vocabulary, at the end of the rep.
+            Defaults to `"front"`.
         overrides: Per-combo field overrides, keyed by `equipment_combo_key`.
             Only fields that differ from the base need appear.
         refinement_cue_ids: IDs into the shared `combocizes.cues.CUE_BANK`.
@@ -115,6 +122,8 @@ class Exercise:
     mover_position_start: str
     mover_position_end: str
     primary_cue: PrimaryCue
+    mat_orientation_start: str = "front"
+    mat_orientation_end: str = "front"
     overrides: dict[ComboKey, dict] = field(default_factory=dict)
     refinement_cue_ids: list[str] = field(default_factory=list)
     own_refinement_cues: list[str] = field(default_factory=list)
@@ -126,6 +135,7 @@ class Exercise:
         self._validate_overrides()
         self._validate_refinement_cue_ids()
         self._validate_mover_and_positions()
+        self._validate_mat_orientation()
 
     def _validate_classification_fields(self) -> None:
         checks = [
@@ -193,6 +203,17 @@ class Exercise:
                 raise ValueError(
                     f"{self.name}: invalid {field_name} {value!r} for mover {self.mover!r}, "
                     f"expected one of {allowed}"
+                )
+
+    def _validate_mat_orientation(self) -> None:
+        for field_name, value in [
+            ("mat_orientation_start", self.mat_orientation_start),
+            ("mat_orientation_end", self.mat_orientation_end),
+        ]:
+            if value not in MAT_ORIENTATIONS:
+                raise ValueError(
+                    f"{self.name}: invalid {field_name} {value!r}, "
+                    f"expected one of {MAT_ORIENTATIONS}"
                 )
 
 

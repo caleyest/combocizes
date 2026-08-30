@@ -50,20 +50,31 @@ MOVER_POSITIONS = {
         "standing",
         "lunge_back",
         "lunge_forward",
+        "lunge_lateral",
         "squat_bottom",
         "kneeling",
         "raised_bent",
         "raised_straight",
+        "straddle",
     ],
+    "legs": ["standing", "squat_bottom", "kneeling"],
     "arm": ["at_sides", "extended", "raised", "overhead", "bent"],
     "torso": ["upright", "rotated_left", "rotated_right", "flexed_forward", "extended_back"],
     "hip": ["neutral", "hinged", "extended", "raised"],
+    "back": ["neutral", "arched"],
+    "feet": ["together", "apart"],
 }
 ```
 
-`"arm"`/`"torso"`/`"hip"` aren't used by any exercise yet — starter placeholders, adjust the first time a real exercise needs a value not listed.
+`"arm"`/`"hip"` aren't used by any exercise yet — starter placeholders, adjust the first time a real exercise needs a value not listed.
+
+`"back"`, `"legs"`, and `"feet"` exist alongside `"leg"`/`"arm"`/`"torso"`/`"hip"` for a specific reason: `mover` is read straight into the cue as `"your {mover}"`, so it has to be a noun that's correct in that singular-possessive form. That's fine for a genuinely unilateral movement (`"leg"` in a reverse lunge — one leg moves), but wrong for a movement where both sides of a paired limb act together — `"lift your arm off the mat"` when both arms lift reads as one arm. `"back"` and `"torso"` sidestep this because they're unpaired; `"legs"` and `"feet"` sidestep it because they're already plural (`"legs"` for a bend/descend, like a squat; `"feet"` for a stance-width change, like a jumping jack). Prefer one of those (extending `MOVER_POSITIONS` with a new key if none fits) over forcing a paired-limb term to cover a bilateral movement.
+
+**When more than one mover is physically plausible, break the tie with `movement_pattern`, not by which reads most distinctively.** A squat (`movement_pattern: "squat"`) should use a leg-family mover even though "the fold" is what makes `squat_to_fold` distinct from a plain squat — the fold becomes a refinement cue, the squat descent stays the primary cue. A `"core"` exercise like `bird_dog` has no limb of its own in `movement_pattern` terms; its job is torso stability, not a limb reach, and picking arm-vs-leg as the mover would be an arbitrary tie-break between two limbs that move simultaneously and symmetrically — so `mover="torso"` (held, `mover_position_start == mover_position_end`) with both limbs named in a refinement cue instead.
 
 Example — reverse lunge with dumbbells: `mover: "leg"`, `mover_position_start: "standing"`, `mover_position_end: "lunge_back"`. The dumbbells stay racked and never travel; the leg does — so nothing about the equipment is tracked here at all for this exercise.
+
+- `mat_orientation_start` / `mat_orientation_end` — which way the student faces on the mat (`"front"` / `"left"` / `"right"` / `"back"`) at the start and end of the rep. Distinct from `mover_position` and `body_positions`: neither can express a turn (a fast-feet drill pivoting to face right isn't a stance-width change or a limb-travel state, it's a change of facing direction). Both default to `"front"`, so only exercises that actually turn — mostly plyo — ever need to set them; the plyo-burst selector chains on them the same way `select_combo` chains on `mover_position`.
 
 **Next step, not built yet:** for an exercise where equipment is held but isn't the mover (like the reverse lunge above), what to do with it — "keep your dumbbells racked at your sides" — is a candidate for a common, shared refinement cue (authored once in the cue bank, referenced via `refinement_cue_ids`) rather than a structured schema field.
 
@@ -93,6 +104,14 @@ Resolution order matters: **choose equipment → then resolve position/cues from
   Assembled at render time into: `"{breath}, {exercise_name}, {action} {moved_object} {direction}."`
   Said once, on first appearance of the exercise in the class.
 
+  **Keep `direction` to one minimal "where," not a second clause.** E.g.
+  `direction="forward"`, not `direction="back into a squat, then fold
+  forward at your hips"`. A second phase, a coordination note ("reach your
+  opposite arm forward"), or a setup detail ("rotate your elbows out
+  first") belongs in a refinement cue instead — it rotates across repeat
+  appearances there, where it would just repeat verbatim stuck in the
+  primary cue.
+
 - `refinement_cue_ids`: explicit references into the shared cue bank (see below)
 - `own_refinement_cues`: exercise-specific cues too particular to generalize
 
@@ -121,11 +140,11 @@ CUE_BANK = {
 
 ### Format: Python, not YAML/JSON
 
-Each exercise and cue is authored directly as a Python object (dataclass instance), not YAML/JSON. Since equipment combos are per-category boolean flags and refinement cues are referenced by ID, a Python data file can reference the same constants used elsewhere — `DUMBBELL_POSITIONS`, `BAND_POSITIONS`, the `movement_pattern` enum, `CUE_BANK` IDs — instead of duplicating them as bare strings that can silently drift out of sync with the enum. A `@dataclass` with `__post_init__` validation (asserting equipment flags are drawn from the known set, `movement_pattern` is a valid value, referenced cue IDs exist, etc.) catches authoring typos at import time rather than only when the generator runs, without needing a separate schema-validation library (pydantic/jsonschema) for something the project already has enum/constant machinery for. Trade-off: less safe to hand-edit blind than YAML, since loading a file executes code — acceptable here since this is a single-maintainer Python project, not a format meant for non-programmers to edit.
+Each exercise and cue is authored directly as a Python object (dataclass instance), not YAML/JSON. Since equipment combos are per-category boolean flags and refinement cues are referenced by ID, a Python data file can reference the same constants used elsewhere — `MOVER_POSITIONS`, the `movement_pattern` enum, `CUE_BANK` IDs — instead of duplicating them as bare strings that can silently drift out of sync with the enum. A `@dataclass` with `__post_init__` validation (asserting equipment flags are drawn from the known set, `movement_pattern` is a valid value, referenced cue IDs exist, etc.) catches authoring typos at import time rather than only when the generator runs, without needing a separate schema-validation library (pydantic/jsonschema) for something the project already has enum/constant machinery for. Trade-off: less safe to hand-edit blind than YAML, since loading a file executes code — acceptable here since this is a single-maintainer Python project, not a format meant for non-programmers to edit.
 
 ### Exercises: one file per exercise
 
-`exercises/` is a flat directory, one file per exercise, named `{muscle_group}_{name}.py` (e.g. `biceps_hammer_curl.py`, `quads_reverse_lunge.py`). The filename prefix gives fast visual grouping by muscle group in any directory listing/sort, without creating a folder hierarchy that has to be physically reorganized if an exercise is ever reclassified — renaming a file is a one-line diff, moving it between nested folders isn't. A loader function globs the directory, imports each file's exercise object, and combines them into the pool the generator selects from; this parsing step is cheap and runs once at startup, not per-generation.
+`exercises/` is a flat directory, one file per exercise, named `{muscle_group}_{name}.py` (e.g. `biceps_hammer_curl.py`, `lower_reverse_lunge.py`). The filename prefix gives fast visual grouping by muscle group in any directory listing/sort, without creating a folder hierarchy that has to be physically reorganized if an exercise is ever reclassified — renaming a file is a one-line diff, moving it between nested folders isn't. A loader function globs the directory, imports each file's exercise object, and combines them into the pool the generator selects from; this parsing step is cheap and runs once at startup, not per-generation.
 
 Nested folders by `movement_pattern` were considered (only 7 stable values, less prone to reclassification than `muscle_group`) but rejected in favor of the filename convention, since `muscle_group` is the axis actually used for browsing/editing exercises, not `movement_pattern`.
 
@@ -145,17 +164,23 @@ Refinement cues stay grouped, not split one-per-file — each cue is only 3-4 li
 | Full-body combos | remainder (~19-24 min typical) | fills gaps | flexible | main use of movement-pattern variety and mover-position chaining logic, see section 5 |
 | Cooldown | ~5 min | 1 | fixed last | last 90 sec = savasana |
 
-**Ordering rule:** don't cluster plyo bursts or focus-songs back to back — intersperse with full-body combo stretches to manage the intensity curve.
+**Ordering rules:** no two plyo bursts ever adjacent, and the segment immediately before cooldown is never a plyo burst — both to manage the intensity curve. Everything else (focus songs, full-body-combo stretches, and plyo next to any of those) may appear in any order, including back to back — e.g. two full-body-combo songs in a row is deliberately fine, since it lets a unilateral move hit right side in one and left side in the next.
+
+**Equipment rules:**
+- Warmup and cooldown always use **no equipment** (bodyweight only).
+- Every other segment (plyo, arms, legs, abs, full-body combos) is equipment-eligible. Across the whole class, heavy dumbbells, light dumbbells, and band (either weight — it's one identity for this rule) must each be used by **at least one** segment, guaranteed by construction when equipment is assigned, not checked-and-retried afterward.
 
 Segment-to-segment transitions (equipment swaps, floor/standing changes) are an expected, known part of moving between songs — not something the generator scores or optimizes against.
 
-Worked time budget (60 min class, midpoint durations): warmup 6 + plyo 12 + arms 4 + legs 5 + abs 4 + cooldown 5 = 36 min fixed/ranged → **~24 min left for full-body combos**. At 50 min (low end of each range): 31 min fixed → **~19 min for full-body combos**.
+Worked time budget (60 min class, midpoint durations): warmup 6 + plyo 12 + arms 4 + legs 5 + abs 4 + cooldown 5 = 36 min fixed/ranged → **~24 min left for full-body combos**. At 50 min (low end of each range): 31 min fixed → **~19 min for full-body combos**. Generalizing to any class length: each fixed-ish segment keeps its own midpoint duration regardless of total length, and full-body-combo time is always whatever's left over — split into stretches sized like a typical focus song (~4 min each) rather than one single block, so there's something to intersperse plyo bursts between.
 
 ## 5. Generator Architecture
 
-- **One parameterized combo-selection function** — "select N exercises from a filtered pool, chained by mover position and varied by movement pattern, fit to a time budget" — reused for plyo bursts, focus songs, and full-body combos, configured differently per `ClassTemplate` segment (pool filter, exercise count, equipment).
+- **One parameterized combo-selection function** (`select_combo`) — "select N exercises from a filtered pool, chained by mover position and varied by movement pattern, fit to a time budget" — reused for focus songs and full-body combos, configured differently per segment (pool filter, exercise count, equipment).
 - Each pick after the first prefers a candidate whose `mover_position_start` matches the previous pick's `mover_position_end` — in-song chaining (e.g. a curl ending near the shoulders flowing straight into an overhead press starting racked), the primary preference. Among whichever candidates that leaves (the chained ones, or the full remaining pool if none chain), the exercise whose `movement_pattern` has been used least so far in the selection is preferred; further ties break randomly.
+- **Plyo bursts get their own selection function** (`select_plyo_burst`), not `select_combo` — every plyo-pool candidate already shares `movement_pattern: "plyo"`, so movement-pattern variety wouldn't discriminate among them, and impact needs a repeating pattern rather than free variety. It follows a **2:1 or 3:1 high:low impact pattern** (e.g. high, high, low, high, high, low, ...; ratio chosen per burst), and within whichever impact a slot needs, prefers a candidate whose `mat_orientation_start` matches the previous pick's `mat_orientation_end` — the same end-matches-next-start mechanism as `mover_position` chaining, but for which way the student faces on the mat (see `mat_orientation_start`/`mat_orientation_end` in section 1's mover fields — a fast-feet drill turning to face right is the case this exists for).
 - Resolution order per exercise instance: choose equipment → resolve position/cue overrides → place in sequence.
+- **Class assembly** (`build_class`) sits above both selection functions: it decides segment count/duration (section 4's formula), picks a plyo-burst count (3 or 4), orders the middle segments (plyo bursts inserted into random non-adjacent, non-final gaps among the shuffled focus-song/full-body-combo segments — satisfying both ordering rules in section 4 by construction), and assigns each segment's equipment (guaranteeing the coverage rule in section 4, also by construction, before randomizing the rest).
 
 ## 6. User Interface
 

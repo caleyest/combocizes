@@ -2,7 +2,12 @@ import random
 
 import pytest
 
-from combocizes.combo_selector import exercise_count_for_duration, select_combo
+from combocizes.combo_selector import (
+    _impact_sequence,
+    exercise_count_for_duration,
+    select_combo,
+    select_plyo_burst,
+)
 from combocizes.constants import SECONDS_PER_EXERCISE
 
 
@@ -135,3 +140,65 @@ def test_select_combo_maximizes_pattern_variety_with_no_chaining_signal(make_exe
         usage[exercise.movement_pattern] = usage.get(exercise.movement_pattern, 0) + 1
 
     assert max(usage.values()) - min(usage.values()) <= 1
+
+
+def test_select_plyo_burst_filters_to_plyo_movement_pattern(make_exercise) -> None:
+    plyo = make_exercise(name="plyo1", movement_pattern="plyo", impact="high")
+    not_plyo = make_exercise(name="not_plyo", movement_pattern="push", impact="high")
+    pool = {"plyo1": plyo, "not_plyo": not_plyo}
+
+    selection = select_plyo_burst(pool, {"heavy_dumbbells": True}, count=1)
+
+    assert selection.exercises == [plyo]
+
+
+def test_select_plyo_burst_raises_when_pool_too_small(make_exercise) -> None:
+    pool = {"a": make_exercise(name="a", movement_pattern="plyo", impact="high")}
+
+    with pytest.raises(ValueError, match="only 1 eligible"):
+        select_plyo_burst(pool, {"heavy_dumbbells": True}, count=2)
+
+
+def test_select_plyo_burst_raises_when_missing_an_impact_level(make_exercise) -> None:
+    pool = {
+        "a": make_exercise(name="a", movement_pattern="plyo", impact="high"),
+        "b": make_exercise(name="b", movement_pattern="plyo", impact="high"),
+    }
+
+    with pytest.raises(ValueError, match="need both high- and low-impact"):
+        select_plyo_burst(pool, {"heavy_dumbbells": True}, count=2)
+
+
+def test_select_plyo_burst_follows_a_2_or_3_to_1_high_low_pattern(make_exercise) -> None:
+    pool = {}
+    for i in range(10):
+        pool[f"high_{i}"] = make_exercise(name=f"high_{i}", movement_pattern="plyo", impact="high")
+        pool[f"low_{i}"] = make_exercise(name=f"low_{i}", movement_pattern="plyo", impact="low")
+    rng = random.Random(1)
+
+    selection = select_plyo_burst(pool, {"heavy_dumbbells": True}, count=9, rng=rng)
+
+    impacts = [e.impact for e in selection.exercises]
+    assert impacts in (_impact_sequence(9, 2), _impact_sequence(9, 3))
+
+
+def test_select_plyo_burst_prefers_mat_orientation_chaining(make_exercise) -> None:
+    # count=2 is always ["high", "high"] regardless of the burst's internal
+    # high:low ratio draw, so a lone low-impact filler keeps the "need both
+    # impact levels" check satisfied without affecting which of these three
+    # gets picked.
+    filler_low = make_exercise(name="filler_low", movement_pattern="plyo", impact="low")
+    first = make_exercise(
+        name="first", movement_pattern="plyo", impact="high", mat_orientation_end="right"
+    )
+    chains = make_exercise(
+        name="chains", movement_pattern="plyo", impact="high", mat_orientation_start="right"
+    )
+    would_lose = make_exercise(name="would_lose", movement_pattern="plyo", impact="high")
+    pool = {e.name: e for e in [filler_low, first, chains, would_lose]}
+    rng = random.Random(0)
+
+    selection = select_plyo_burst(pool, {"heavy_dumbbells": True}, count=2, rng=rng)
+
+    if selection.exercises[0].name == "first":
+        assert selection.exercises[1].name == "chains"

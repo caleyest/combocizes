@@ -48,7 +48,8 @@ into `src/` and import it back.
 | `schema.py`    | `Exercise`/`PrimaryCue` dataclasses and equipment-combo resolution. See [Exercise data model](exercise-data.md). |
 | `cues.py`      | `RefinementCue` dataclass and the merged `CUE_BANK`. See [Exercise data model](exercise-data.md). |
 | `loader.py`    | Loads `data/exercises/` into one pool. See [Exercise data model](exercise-data.md). |
-| `combo_selector.py` | Selects one song's exercises, chained by mover position and varied by movement pattern. See [Generator](generator.md). |
+| `combo_selector.py` | Selects one segment's exercises — `select_combo` (chained/varied) and `select_plyo_burst` (impact pattern). See [Generator](generator.md). |
+| `class_template.py` | Assembles a full class: segment timing, ordering, and equipment across songs. See [Generator](generator.md). |
 
 As the project grows, split `core.py` by concern rather than letting it sprawl,
 and add a reference page here for each substantial new module.

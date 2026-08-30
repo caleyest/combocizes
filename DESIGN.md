@@ -10,7 +10,7 @@ Each exercise is a single record — not duplicated per equipment variant.
 - `name`
 - `movement_pattern` — push / pull / hinge / squat / lunge / core / plyo
 - `body_region` — upper / lower / core / full (coarse; drives warmup/cooldown/full-body filtering)
-- `muscle_group` — biceps, triceps, shoulders, chest, back, quads, hamstrings, glutes, abs, etc. (fine-grained; drives the arms/legs/abs focus songs)
+- `muscle_group` — biceps, triceps, shoulders, chest, back, lower, posterior, core, plyo (drives the arms/legs/abs focus songs). Upper-body values are fine-grained per muscle; lower-body stays coarse (`lower` vs. `posterior`) rather than splitting into quads/hamstrings/glutes/etc. — most lower-body exercises are compound moves that load several leg muscles at once and resist clean isolation, so a finer split wouldn't track what the exercise actually targets. `posterior` is reserved for exercises that explicitly target the posterior chain (glutes/hamstrings, e.g. a good morning); everything else lower-body is `lower`.
 - `body_positions` — a list of `BodyPosition(start, end)` pairs, each drawn from: standing_narrow / standing_wide / seated / supine / prone / kneeling / plank / hinge / lunge / squat. A list, not a single pair, since some exercises validly work from several alternative stances (e.g. a hammer curl done standing_narrow, standing_wide, kneeling, or from a lunge) — purely additive, unlike equipment, since cue text doesn't change based on stance. Each pair itself captures whether the whole-body stance changes over the course of the rep, the same start/end shape as the mover fields below but at the whole-body level instead of the moving limb's: most exercises hold one stance throughout (`BodyPosition.held(position)` is shorthand for `start == end`), but a handful genuinely transition — a reverse lunge is `BodyPosition("standing_narrow", "lunge")`, a good morning is `BodyPosition("standing_narrow", "hinge")`. `combocizes.constants.BODY_POSITION_TIERS` groups the vocabulary by transition cost from standing, and `select_combo`'s chaining and guardrails (section 5) key off both the pair's exact values and its tier.
 - `unilateral` — bool
 - `impact` — high / low
@@ -223,7 +223,6 @@ CLI wizard to start (prompts → draft → lock/reroll loop → export finished 
 
 - Plyo cue shape (breath-per-rep vs. setup+safety+pacing)
 - Exact verb synonym-pool vocabulary — the pool `action_pool_key` (section 1) is meant to index into; no such pool, and no code that reads the key, exists yet
-- Full `muscle_group` taxonomy list
 - Equipment-availability-per-day, impact ceiling, difficulty level, and repeat-avoidance-across-classes were proposed as wizard questions but not selected for v1 — worth revisiting later if needed
 - A common/shared refinement cue for equipment that's held but not the mover (e.g. "keep your dumbbells racked at your sides") — see section 1
 - `MOVER_LOCATIONS["torso"]`'s `"forward_fold"` is still an unused placeholder — `squat_to_fold` ended up keyed on `mover="legs"`, `location_end="squat"` instead, so the fold itself lives only in a refinement cue, not a dedicated location. Revisit if a torso-mover exercise (e.g. a standing forward fold done independent of a squat) actually needs it.

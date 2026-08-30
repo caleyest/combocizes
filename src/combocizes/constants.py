@@ -7,8 +7,10 @@ membership checks in `combocizes.schema`.
 MOVEMENT_PATTERNS = ["push", "pull", "hinge", "squat", "lunge", "core", "plyo"]
 BODY_REGIONS = ["upper", "lower", "core", "full"]
 
-# Starter taxonomy — the exact values DESIGN.md names. Full list still open
-# (DESIGN.md section 7); extend as new exercises need muscle groups not here.
+# Upper-body values are fine-grained per muscle; lower-body stays coarse
+# (`lower` vs. `posterior`) rather than splitting into quads/hamstrings/etc.,
+# since most lower-body exercises are compound moves that resist clean
+# muscle isolation. See DESIGN.md section 1.
 MUSCLE_GROUPS = [
     "biceps",
     "triceps",

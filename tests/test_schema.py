@@ -73,6 +73,21 @@ def test_rejects_invalid_muscle_group(make_exercise) -> None:
         make_exercise(muscle_group="nope")
 
 
+def test_rejects_empty_body_positions(make_exercise) -> None:
+    with pytest.raises(ValueError, match="body_positions must list at least one position"):
+        make_exercise(body_positions=[])
+
+
+def test_rejects_invalid_body_position(make_exercise) -> None:
+    with pytest.raises(ValueError, match="invalid body_positions"):
+        make_exercise(body_positions=["upside_down"])
+
+
+def test_accepts_multiple_body_positions(make_exercise) -> None:
+    exercise = make_exercise(body_positions=["standing_narrow", "standing_wide", "kneeling"])
+    assert exercise.body_positions == ["standing_narrow", "standing_wide", "kneeling"]
+
+
 def test_rejects_empty_equipment_options(make_exercise) -> None:
     with pytest.raises(ValueError, match="equipment_options must list at least one combo"):
         make_exercise(equipment_options=[])

@@ -18,7 +18,7 @@ def make_exercise():
             "movement_pattern": "pull",
             "body_region": "upper",
             "muscle_group": "biceps",
-            "body_position": "standing_narrow",
+            "body_positions": ["standing_narrow"],
             "unilateral": False,
             "impact": "low",
             "equipment_options": [{}, {"heavy_dumbbells": True}],

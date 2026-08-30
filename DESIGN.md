@@ -11,7 +11,7 @@ Each exercise is a single record — not duplicated per equipment variant.
 - `movement_pattern` — push / pull / hinge / squat / lunge / core / plyo
 - `body_region` — upper / lower / core / full (coarse; drives warmup/cooldown/full-body filtering)
 - `muscle_group` — biceps, triceps, shoulders, chest, back, quads, hamstrings, glutes, abs, etc. (fine-grained; drives the arms/legs/abs focus songs)
-- `body_position` — standing_narrow / standing_wide / seated / supine / prone / kneeling / plank
+- `body_positions` — list of one or more of: standing_narrow / standing_wide / seated / supine / prone / kneeling / plank / hinge / lunge. A list, not a single value, since some exercises validly work from several stances (e.g. a hammer curl done standing_narrow, standing_wide, kneeling, or from a lunge) — purely additive, unlike equipment, since cue text doesn't change based on stance.
 - `unilateral` — bool
 - `impact` — high / low
 

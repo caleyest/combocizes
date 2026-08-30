@@ -72,7 +72,9 @@ class Exercise:
         movement_pattern: One of `combocizes.constants.MOVEMENT_PATTERNS`.
         body_region: One of `combocizes.constants.BODY_REGIONS`.
         muscle_group: One of `combocizes.constants.MUSCLE_GROUPS`.
-        body_position: One of `combocizes.constants.BODY_POSITIONS`.
+        body_positions: The stances this exercise can be done from, e.g.
+            `["standing_narrow", "kneeling"]`. Must list at least one value,
+            each drawn from `combocizes.constants.BODY_POSITIONS`.
         unilateral: Whether the exercise works one side at a time.
         impact: One of `combocizes.constants.IMPACT_LEVELS`.
         equipment_options: Valid equipment combos for this exercise, e.g.
@@ -105,7 +107,7 @@ class Exercise:
     movement_pattern: str
     body_region: str
     muscle_group: str
-    body_position: str
+    body_positions: list[str]
     unilateral: bool
     impact: str
     equipment_options: list[EquipmentCombo]
@@ -119,6 +121,7 @@ class Exercise:
 
     def __post_init__(self) -> None:
         self._validate_classification_fields()
+        self._validate_body_positions()
         self._validate_equipment_options()
         self._validate_overrides()
         self._validate_refinement_cue_ids()
@@ -129,7 +132,6 @@ class Exercise:
             ("movement_pattern", self.movement_pattern, MOVEMENT_PATTERNS),
             ("body_region", self.body_region, BODY_REGIONS),
             ("muscle_group", self.muscle_group, MUSCLE_GROUPS),
-            ("body_position", self.body_position, BODY_POSITIONS),
             ("impact", self.impact, IMPACT_LEVELS),
         ]
         for field_name, value, allowed in checks:
@@ -137,6 +139,16 @@ class Exercise:
                 raise ValueError(
                     f"{self.name}: invalid {field_name} {value!r}, expected one of {allowed}"
                 )
+
+    def _validate_body_positions(self) -> None:
+        if not self.body_positions:
+            raise ValueError(f"{self.name}: body_positions must list at least one position")
+        unknown = [p for p in self.body_positions if p not in BODY_POSITIONS]
+        if unknown:
+            raise ValueError(
+                f"{self.name}: invalid body_positions {unknown}, "
+                f"expected values from {BODY_POSITIONS}"
+            )
 
     def _validate_equipment_options(self) -> None:
         # `equipment_options` must be non-empty, but an entry may itself be

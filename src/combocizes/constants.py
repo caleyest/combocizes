@@ -29,6 +29,8 @@ BODY_POSITIONS = [
     "prone",
     "kneeling",
     "plank",
+    "hinge",
+    "lunge",
 ]
 IMPACT_LEVELS = ["high", "low"]
 

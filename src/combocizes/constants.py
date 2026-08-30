@@ -80,8 +80,15 @@ MOVER_POSITIONS = {
         "hanging_palms_front",
         "hanging_palms_back",
         "overhead",
+        "behind_head",
         "extended",
         "shoulder",
+        # Grip-differentiated variants of "shoulder" — the press-up start
+        # position, where an overhead press's grip is set (mirrors how
+        # "hanging_palms_X" differentiates grip at the hang position).
+        "shoulder_palms_in",
+        "shoulder_palms_front",
+        "shoulder_palms_back",
         "around_thighs",
         "around_ankles",
         "anchored_underfoot",
@@ -102,18 +109,21 @@ MOVER_POSITIONS = {
     # together, e.g. a squat) — same reasoning as "feet" vs. "leg" above.
     "legs": ["standing", "squat_bottom", "kneeling"],
     "arm": ["at_sides", "extended", "raised", "overhead", "bent"],
+    # "arms" (plural) mirrors "arm" for bilateral bodyweight pressing moves
+    # (e.g. a push-up), same reasoning as "legs" vs. "leg".
+    "arms": ["bent", "extended"],
     "torso": ["upright", "rotated_left", "rotated_right", "flexed_forward", "extended_back"],
     "hip": ["neutral", "hinged", "extended", "raised"],
     "back": ["neutral", "arched"],
     # "feet" (plural noun, not "leg") is for movements where both legs act
     # together — "your feet" reads correctly as inherently plural, where
     # "your leg" would wrongly imply one side.
-    "feet": ["together", "apart"],
+    "feet": ["together", "apart", "heels_down", "heels_up"],
 }
 
 # Provisional: DESIGN.md doesn't specify a real per-exercise duration, so a
 # fixed convention stands in for now (DESIGN.md section 7).
-SECONDS_PER_EXERCISE = 30
+SECONDS_PER_EXERCISE = 45
 
 # Which way the student faces on the mat, distinct from body_positions
 # (stance width/shape) -- a fast-feet drill turning to face right can't be

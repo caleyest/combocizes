@@ -92,7 +92,7 @@ Resolution order matters: **choose equipment → then resolve position/cues from
 - `primary_cue`: decomposed into:
   - `breath` (e.g. "exhale")
   - `action` (verb, e.g. "drive")
-  - `action_pool_key` (points into a shared synonym pool for randomized verb variety, e.g. `curl_up: ["drive", "curl", "pull", "draw"]`)
+  - `action_pool_key` (points into a shared synonym pool for randomized verb variety, e.g. `curl_up: ["drive", "curl", "pull", "draw"]`) — authored on every exercise already, but inert until the pool itself exists; see section 7. Until then, rendering just prints `action` literally.
   - `direction` (fixed, exercise-specific free text — usually doesn't vary by equipment)
 
   The equipment-resolved object noun (`moved_object`) isn't authored as a
@@ -176,7 +176,7 @@ Worked time budget (60 min class, midpoint durations): warmup 6 + plyo 12 + arms
 ## 5. Generator Architecture
 
 - **One parameterized combo-selection function** (`select_combo`) — "select N exercises from a filtered pool, chained by mover position and varied by movement pattern, fit to a time budget" — reused for focus songs and full-body combos, configured differently per segment (pool filter, exercise count, equipment).
-- Each pick after the first prefers a candidate whose `mover_position_start` matches the previous pick's `mover_position_end` — in-song chaining (e.g. a curl ending near the shoulders flowing straight into an overhead press starting racked), the primary preference. Among whichever candidates that leaves (the chained ones, or the full remaining pool if none chain), the exercise whose `movement_pattern` has been used least so far in the selection is preferred; further ties break randomly.
+- Each pick after the first is narrowed by preference, in order. First, a candidate whose `body_positions` overlaps the previous pick's `body_positions` — same stance, no transition needed — since a stance change (e.g. standing to supine) costs real time and disrupts flow more than a mover-position mismatch does. Among those (or the full remaining pool if none share a stance), a candidate whose `mover_position_start` matches the previous pick's `mover_position_end` — in-song chaining (e.g. a curl ending near the shoulders flowing straight into an overhead press starting racked). Among whichever candidates that leaves, the exercise whose `movement_pattern` has been used least so far in the selection is preferred; further ties break randomly. Since an exercise can list more than one valid stance, the specific one actually assumed for each pick — shared with the previous pick's stance when the preference above applied, otherwise one of the pick's own — is recorded on the result (`ComboSelection.body_positions`), rather than left for callers to re-derive.
 - **Plyo bursts get their own selection function** (`select_plyo_burst`), not `select_combo` — every plyo-pool candidate already shares `movement_pattern: "plyo"`, so movement-pattern variety wouldn't discriminate among them, and impact needs a repeating pattern rather than free variety. It follows a **2:1 or 3:1 high:low impact pattern** (e.g. high, high, low, high, high, low, ...; ratio chosen per burst), and within whichever impact a slot needs, prefers a candidate whose `mat_orientation_start` matches the previous pick's `mat_orientation_end` — the same end-matches-next-start mechanism as `mover_position` chaining, but for which way the student faces on the mat (see `mat_orientation_start`/`mat_orientation_end` in section 1's mover fields — a fast-feet drill turning to face right is the case this exists for).
 - Resolution order per exercise instance: choose equipment → resolve position/cue overrides → place in sequence.
 - **Class assembly** (`build_class`) sits above both selection functions: it decides segment count/duration (section 4's formula), picks a plyo-burst count (3 or 4), orders the middle segments (plyo bursts inserted into random non-adjacent, non-final gaps among the shuffled focus-song/full-body-combo segments — satisfying both ordering rules in section 4 by construction), and assigns each segment's equipment (guaranteeing the coverage rule in section 4, also by construction, before randomizing the rest).
@@ -200,7 +200,23 @@ CLI wizard to start (prompts → draft → lock/reroll loop → export finished 
 ## 7. Explicitly deferred / not yet decided
 
 - Plyo cue shape (breath-per-rep vs. setup+safety+pacing)
-- Exact verb synonym-pool vocabulary
+- Exact verb synonym-pool vocabulary — the pool `action_pool_key` (section 1) is meant to index into; no such pool, and no code that reads the key, exists yet
 - Full `muscle_group` taxonomy list
 - Equipment-availability-per-day, impact ceiling, difficulty level, and repeat-avoidance-across-classes were proposed as wizard questions but not selected for v1 — worth revisiting later if needed
 - A common/shared refinement cue for equipment that's held but not the mover (e.g. "keep your dumbbells racked at your sides") — see section 1
+- Author dedicated warmup and cooldown movements. Both segments currently
+  draw from the same `body_region == "full"` pool as full-body combos;
+  warmup wants gentler ramp-up moves and cooldown wants static
+  stretches/holds, which the general full-body pool isn't guaranteed to
+  contain.
+- New ordering constraint, not yet implemented: the segment immediately
+  before cooldown should end in a low `body_positions` value — `kneeling`,
+  `supine`, `prone`, or `plank` — so the transition into cooldown/savasana
+  doesn't require standing back up first. Today `build_class` only
+  guarantees that segment isn't plyo (section 4); it doesn't yet look at
+  what position it ends in.
+- Consider whether refinement cues can be generalized beyond per-exercise
+  `exercise_ids` — e.g. cues keyed by a shared trait (a `body_positions`
+  value, a `movement_pattern`, "equipment held but not the mover") that
+  would apply across many exercises at once, instead of every cue having
+  to list out each exercise it applies to individually.

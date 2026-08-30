@@ -85,6 +85,43 @@ def test_select_combo_prefers_chaining_over_variety(make_exercise) -> None:
         assert selection.exercises[1].name == "chains"
 
 
+def test_select_combo_prefers_stance_over_chaining(make_exercise) -> None:
+    first = make_exercise(
+        name="first",
+        body_positions=["standing_narrow"],
+        movement_pattern="pull",
+        mover="equipment",
+        mover_position_start="hanging_palms_in",
+        mover_position_end="shoulder",
+    )
+    would_win_on_chaining = make_exercise(
+        name="would_win_on_chaining",
+        body_positions=["supine"],
+        movement_pattern="pull",
+        mover="equipment",
+        mover_position_start="shoulder",
+        mover_position_end="overhead",
+    )
+    same_stance = make_exercise(
+        name="same_stance",
+        body_positions=["standing_narrow"],
+        movement_pattern="push",
+        mover="equipment",
+        mover_position_start="racked",
+        mover_position_end="overhead",
+    )
+    pool = {e.name: e for e in [first, would_win_on_chaining, same_stance]}
+    rng = random.Random(0)
+
+    selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=rng)
+
+    if selection.exercises[0].name == "first":
+        # "same_stance" must win the second slot even though
+        # "would_win_on_chaining" chains on mover_position, since sharing a
+        # stance is now the primary preference.
+        assert selection.exercises[1].name == "same_stance"
+
+
 def test_select_combo_falls_back_to_variety_when_nothing_chains(make_exercise) -> None:
     first = make_exercise(
         name="first",
@@ -117,6 +154,103 @@ def test_select_combo_falls_back_to_variety_when_nothing_chains(make_exercise) -
         # mover_position_end "shoulder" matches neither's start), so variety
         # picks the exercise whose pattern ("push") hasn't been used yet.
         assert selection.exercises[1].name == "no_chain_b"
+
+
+def test_select_combo_records_shared_stance_when_available(make_exercise) -> None:
+    first = make_exercise(
+        name="first",
+        body_positions=["standing_narrow", "standing_wide"],
+        movement_pattern="pull",
+        mover="equipment",
+        mover_position_start="hanging_palms_in",
+        mover_position_end="shoulder",
+    )
+    same_stance = make_exercise(
+        name="same_stance",
+        body_positions=["standing_narrow", "standing_wide"],
+        movement_pattern="push",
+        mover="equipment",
+        mover_position_start="racked",
+        mover_position_end="overhead",
+    )
+    pool = {e.name: e for e in [first, same_stance]}
+    rng = random.Random(0)
+
+    selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=rng)
+
+    assert len(selection.body_positions) == 2
+    assert selection.body_positions[0] in first.body_positions
+    if selection.exercises[1].name == "same_stance":
+        # Both exercises support both stances, so the second pick's recorded
+        # position must be whichever one the first pick actually recorded —
+        # not just any position from its own list.
+        assert selection.body_positions[1] == selection.body_positions[0]
+
+
+def test_select_combo_records_own_stance_when_nothing_shared(make_exercise) -> None:
+    first = make_exercise(
+        name="first",
+        body_positions=["standing_narrow"],
+        movement_pattern="pull",
+        mover="equipment",
+        mover_position_start="hanging_palms_in",
+        mover_position_end="shoulder",
+    )
+    no_shared_stance = make_exercise(
+        name="no_shared_stance",
+        body_positions=["supine"],
+        movement_pattern="push",
+        mover="equipment",
+        mover_position_start="racked",
+        mover_position_end="overhead",
+    )
+    pool = {e.name: e for e in [first, no_shared_stance]}
+    rng = random.Random(0)
+
+    selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=rng)
+
+    if selection.exercises[1].name == "no_shared_stance":
+        assert selection.body_positions[1] == "supine"
+
+
+def test_select_combo_carries_sticky_position_forward_when_still_valid(make_exercise) -> None:
+    # Mirrors a real bug: without stickiness, "row_narrow" (recorded
+    # "plank") -> "tricep_kickbacks" (recorded "hinge") looked like a
+    # stance change even though "row_narrow" could equally have been
+    # recorded "hinge", which "tricep_kickbacks" also supports.
+    pool = {
+        "row_narrow": make_exercise(
+            name="row_narrow",
+            body_positions=["plank", "hinge"],
+            movement_pattern="pull",
+            mover="equipment",
+            mover_position_start="hanging_palms_in",
+            mover_position_end="shoulder",
+        ),
+        "tricep_kickbacks": make_exercise(
+            name="tricep_kickbacks",
+            body_positions=["kneeling", "hinge"],
+            movement_pattern="push",
+            mover="equipment",
+            mover_position_start="racked",
+            mover_position_end="overhead",
+        ),
+        "chest_fly": make_exercise(
+            name="chest_fly",
+            body_positions=["standing_wide", "hinge"],
+            movement_pattern="squat",
+            mover="equipment",
+            mover_position_start="racked",
+            mover_position_end="racked",
+        ),
+    }
+
+    for seed in range(20):
+        selection = select_combo(pool, {"heavy_dumbbells": True}, count=3, rng=random.Random(seed))
+        for i in range(1, len(selection.exercises)):
+            previous_position = selection.body_positions[i - 1]
+            if previous_position in selection.exercises[i].body_positions:
+                assert selection.body_positions[i] == previous_position
 
 
 def test_select_combo_maximizes_pattern_variety_with_no_chaining_signal(make_exercise) -> None:

@@ -2,6 +2,8 @@ import pytest
 
 from combocizes.schema import (
     BodyPosition,
+    Exercise,
+    PrimaryCue,
     equipment_combo_key,
     resolve_exercise,
     resolve_moved_object,
@@ -37,7 +39,11 @@ def test_resolve_exercise_is_a_noop_without_a_matching_override(make_exercise) -
 
 def test_resolve_moved_object_uses_mover_when_not_equipment(make_exercise) -> None:
     exercise = make_exercise(
-        mover="leg", mover_position_start="standing", mover_position_end="lunge_back"
+        mover="leg",
+        location_start="standing",
+        direction_start="forward",
+        location_end="lunge",
+        direction_end="back",
     )
     assert resolve_moved_object(exercise, {"heavy_dumbbells": True}) == "your leg"
     assert resolve_moved_object(exercise, {}) == "your leg"
@@ -45,7 +51,11 @@ def test_resolve_moved_object_uses_mover_when_not_equipment(make_exercise) -> No
 
 def test_resolve_moved_object_derives_equipment_phrase(make_exercise) -> None:
     exercise = make_exercise(
-        mover="equipment", mover_position_start="hanging_palms_in", mover_position_end="shoulder"
+        mover="equipment",
+        location_start="extended",
+        direction_start="palms_in",
+        location_end="shoulder",
+        direction_end=None,
     )
     assert resolve_moved_object(exercise, {"heavy_dumbbells": True}) == "your dumbbells"
     assert resolve_moved_object(exercise, {"light_band": True}) == "the band"
@@ -53,7 +63,11 @@ def test_resolve_moved_object_derives_equipment_phrase(make_exercise) -> None:
 
 def test_resolve_moved_object_singularizes_for_single(make_exercise) -> None:
     exercise = make_exercise(
-        mover="equipment", mover_position_start="hanging_palms_in", mover_position_end="shoulder"
+        mover="equipment",
+        location_start="extended",
+        direction_start="palms_in",
+        location_end="shoulder",
+        direction_end=None,
     )
     assert (
         resolve_moved_object(exercise, {"heavy_dumbbells": True, "single": True}) == "your dumbbell"
@@ -62,7 +76,11 @@ def test_resolve_moved_object_singularizes_for_single(make_exercise) -> None:
 
 def test_resolve_moved_object_raises_when_equipment_mover_has_no_equipment(make_exercise) -> None:
     exercise = make_exercise(
-        mover="equipment", mover_position_start="hanging_palms_in", mover_position_end="shoulder"
+        mover="equipment",
+        location_start="extended",
+        direction_start="palms_in",
+        location_end="shoulder",
+        direction_end=None,
     )
     with pytest.raises(KeyError, match="no equipment phrase"):
         resolve_moved_object(exercise, {})
@@ -125,25 +143,92 @@ def test_rejects_override_key_with_no_matching_combo(make_exercise) -> None:
 
 def test_rejects_invalid_mover(make_exercise) -> None:
     with pytest.raises(ValueError, match="invalid mover"):
-        make_exercise(mover="wing", mover_position_start="tucked", mover_position_end="spread")
-
-
-def test_rejects_mover_position_not_in_movers_vocabulary(make_exercise) -> None:
-    with pytest.raises(ValueError, match="invalid mover_position_start"):
         make_exercise(
-            mover="leg", mover_position_start="hanging_palms_in", mover_position_end="standing"
+            mover="wing",
+            location_start="tucked",
+            direction_start=None,
+            location_end="spread",
+            direction_end=None,
         )
 
 
-def test_accepts_valid_equipment_mover_position(make_exercise) -> None:
-    exercise = make_exercise(
-        mover="equipment", mover_position_start="hanging_palms_in", mover_position_end="shoulder"
-    )
-    assert exercise.mover_position_end == "shoulder"
+def test_rejects_location_not_in_movers_vocabulary(make_exercise) -> None:
+    with pytest.raises(ValueError, match="invalid location_start"):
+        make_exercise(
+            mover="leg",
+            location_start="hanging",
+            direction_start=None,
+            location_end="standing",
+            direction_end=None,
+        )
 
 
-def test_accepts_valid_leg_position(make_exercise) -> None:
+def test_rejects_direction_for_a_mover_with_no_direction_axis(make_exercise) -> None:
+    with pytest.raises(ValueError, match="invalid direction_start"):
+        make_exercise(
+            mover="hip",
+            location_start="neutral",
+            direction_start="left",
+            location_end="hinged",
+            direction_end=None,
+        )
+
+
+def test_accepts_none_direction_on_any_mover(make_exercise) -> None:
     exercise = make_exercise(
-        mover="leg", mover_position_start="standing", mover_position_end="lunge_back"
+        mover="hip",
+        location_start="neutral",
+        direction_start=None,
+        location_end="hinged",
+        direction_end=None,
     )
-    assert exercise.mover_position_end == "lunge_back"
+    assert exercise.direction_start is None
+    assert exercise.direction_end is None
+
+
+def test_accepts_valid_equipment_location_and_direction(make_exercise) -> None:
+    exercise = make_exercise(
+        mover="equipment",
+        location_start="extended",
+        direction_start="palms_in",
+        location_end="shoulder",
+        direction_end=None,
+    )
+    assert exercise.location_end == "shoulder"
+    assert exercise.direction_start == "palms_in"
+
+
+def test_accepts_valid_leg_location_and_direction(make_exercise) -> None:
+    exercise = make_exercise(
+        mover="leg",
+        location_start="standing",
+        direction_start="forward",
+        location_end="lunge",
+        direction_end="back",
+    )
+    assert exercise.location_end == "lunge"
+    assert exercise.direction_end == "back"
+
+
+def test_requires_direction_end_to_be_passed_explicitly() -> None:
+    # Constructs Exercise directly, bypassing make_exercise's fixture
+    # defaults, since those would silently backfill the omitted field.
+    with pytest.raises(TypeError):
+        Exercise(
+            name="test_exercise",
+            movement_pattern="pull",
+            body_region="upper",
+            muscle_group="biceps",
+            body_positions=[BodyPosition.held("standing_narrow")],
+            unilateral=False,
+            impact="low",
+            equipment_options=[{}],
+            mover="leg",
+            location_start="standing",
+            location_end="lunge",
+            direction_start="forward",
+            # direction_end intentionally omitted -- required, not defaulted.
+            primary_cue=PrimaryCue(
+                breath="Exhale", action="curl", action_pool_key="curl_up", direction="up"
+            ),
+        )

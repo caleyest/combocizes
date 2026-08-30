@@ -25,8 +25,10 @@ EXERCISE = Exercise(
     # so both go in the refinement cue instead. Start and end are the same
     # ("upright") since the torso's job here is to not move.
     mover="torso",
-    mover_position_start="upright",
-    mover_position_end="upright",
+    location_start="upright",
+    direction_start="right",
+    location_end="upright",
+    direction_end="left",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="brace",

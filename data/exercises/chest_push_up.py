@@ -19,8 +19,10 @@ EXERCISE = Exercise(
     # mover is "arms" (plural, bodyweight bilateral press) — both arms
     # press together, so singular "arm" would wrongly imply one side.
     mover="arms",
-    mover_position_start="bent",
-    mover_position_end="extended",
+    location_start="bent",
+    direction_start=None,
+    location_end="extended",
+    direction_end=None,
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="press",

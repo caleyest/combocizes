@@ -92,32 +92,33 @@ EQUIPMENT_PHRASES = {
     "light_band": "the band",
 }
 
-# mover_position vocabulary (DESIGN.md section 7 — now settled). Keyed per
+# mover location vocabulary (DESIGN.md section 7 — now settled). Keyed per
 # mover, since different movers travel through entirely different physical
 # states. "equipment" (the mover for exercises where the equipment itself
 # travels, e.g. a curl) absorbs what used to be separate dumbbell/band
 # position constants — there's no separate equipment_position field, so
-# this is the only place "where's the equipment" is tracked. "arm"/"torso"/
-# "hip" aren't exercised by any file yet — starter placeholders, adjust the
+# this is the only place "where's the equipment" is tracked. "arm"/"hip"
+# aren't exercised by any file yet — starter placeholders, adjust the
 # first time a real exercise needs a value not listed here (same treatment
 # as MUSCLE_GROUPS).
-MOVER_POSITIONS = {
+#
+# This is the location half only -- MOVER_LOCATIONS used to be
+# MOVER_POSITIONS, with grip/step/rotation direction fused into compound
+# values (e.g. "hanging_palms_in", "lunge_back", "rotated_left"). Splitting
+# location from direction (see MOVER_DIRECTIONS below) lets select_combo
+# chain on location alone when direction doesn't also line up.
+MOVER_LOCATIONS = {
     "equipment": [
         "racked",
-        "heart's center",
-        "hanging_palms_in",
-        "hanging_palms_front",
-        "hanging_palms_back",
+        "hearts_center",
+        "bent",
         "overhead",
         "behind_head",
         "extended",
         "shoulder",
-        # Grip-differentiated variants of "shoulder" — the press-up start
-        # position, where an overhead press's grip is set (mirrors how
-        # "hanging_palms_X" differentiates grip at the hang position).
-        "shoulder_palms_in",
-        "shoulder_palms_front",
-        "shoulder_palms_back",
+        "fly",
+        "pressed",
+        "floor",
         "around_thighs",
         "around_ankles",
         "anchored_underfoot",
@@ -125,10 +126,8 @@ MOVER_POSITIONS = {
     ],
     "leg": [
         "standing",
-        "lunge_back",
-        "lunge_forward",
-        "lunge_lateral",
-        "squat_bottom",
+        "lunge",
+        "squat",
         "kneeling",
         "raised_bent",
         "raised_straight",
@@ -136,18 +135,38 @@ MOVER_POSITIONS = {
     ],
     # "legs" (plural) mirrors "leg" for bilateral leg movements (both bend
     # together, e.g. a squat) — same reasoning as "feet" vs. "leg" above.
-    "legs": ["standing", "squat_bottom", "kneeling"],
+    "legs": ["standing", "squat", "kneeling", "calf_raise", "hinge"],
     "arm": ["at_sides", "extended", "raised", "overhead", "bent"],
     # "arms" (plural) mirrors "arm" for bilateral bodyweight pressing moves
     # (e.g. a push-up), same reasoning as "legs" vs. "leg".
     "arms": ["bent", "extended"],
-    "torso": ["upright", "rotated_left", "rotated_right", "flexed_forward", "extended_back"],
+    "torso": [
+        "upright",
+        "rotated",
+        "flexed_forward",
+        "extended_back",
+        "plank",
+        "downward_dog",
+        "forward_fold",
+    ],
     "hip": ["neutral", "hinged", "extended", "raised"],
     "back": ["neutral", "arched"],
     # "feet" (plural noun, not "leg") is for movements where both legs act
     # together — "your feet" reads correctly as inherently plural, where
     # "your leg" would wrongly imply one side.
-    "feet": ["together", "apart", "heels_down", "heels_up"],
+    "feet": ["together", "apart"],
+}
+
+# The direction half of the split described above -- only present for
+# movers that actually have a direction axis; a mover absent here (arm,
+# arms, hip, back, feet) simply never takes a non-None direction_start/
+# direction_end. Values are still required fields on Exercise (None is a
+# valid value, but it must be stated explicitly) -- see schema.Exercise.
+MOVER_DIRECTIONS = {
+    "equipment": ["palms_in", "palms_front", "palms_back", "palms_up", "left", "right"],
+    "leg": ["back", "forward", "lateral", "kickstand"],
+    "legs": ["up", "down"],
+    "torso": ["left", "right"],
 }
 
 # Provisional: DESIGN.md doesn't specify a real per-exercise duration, so a

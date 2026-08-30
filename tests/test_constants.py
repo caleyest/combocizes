@@ -14,9 +14,13 @@ def test_vocab_lists_are_nonempty() -> None:
     assert all(vocabs)
 
 
-def test_mover_positions_has_an_entry_for_equipment_and_every_list_is_nonempty() -> None:
-    assert "equipment" in constants.MOVER_POSITIONS
-    assert all(constants.MOVER_POSITIONS.values())
+def test_mover_locations_has_an_entry_for_equipment_and_every_list_is_nonempty() -> None:
+    assert "equipment" in constants.MOVER_LOCATIONS
+    assert all(constants.MOVER_LOCATIONS.values())
+
+
+def test_mover_directions_movers_are_a_subset_of_mover_locations_movers() -> None:
+    assert set(constants.MOVER_DIRECTIONS) <= set(constants.MOVER_LOCATIONS)
 
 
 def test_dumbbell_flags_are_a_subset_of_equipment_flags() -> None:

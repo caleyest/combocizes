@@ -30,8 +30,10 @@ EXERCISE = Exercise(
     # should name ("curl your dumbbells up"), not a body part. Neutral grip
     # (palms facing in) throughout is what makes this a "hammer" curl.
     mover="equipment",
-    mover_position_start="hanging_palms_in",
-    mover_position_end="shoulder",
+    location_start="extended",
+    direction_start="palms_in",
+    location_end="shoulder",
+    direction_end="palms_in",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="curl",

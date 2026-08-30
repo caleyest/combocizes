@@ -23,8 +23,10 @@ def make_exercise():
             "impact": "low",
             "equipment_options": [{}, {"heavy_dumbbells": True}],
             "mover": "arm",
-            "mover_position_start": "at_sides",
-            "mover_position_end": "bent",
+            "location_start": "at_sides",
+            "location_end": "bent",
+            "direction_start": None,
+            "direction_end": None,
             "primary_cue": PrimaryCue(
                 breath="Exhale", action="curl", action_pool_key="curl_up", direction="up"
             ),

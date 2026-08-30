@@ -150,8 +150,15 @@ def select_combo(
            makes narrow/wide stances non-interchangeable even though both
            are tier 1 (the "plane" guardrail): they're just never equal.
         2. Among whichever candidates that leaves, one whose
-           `mover_position_start` matches the previous pick's
-           `mover_position_end` — in-song chaining.
+           `location_start` matches either of the previous pick's own two
+           transition points -- its `location_start` or its `location_end`
+           -- since either is a plausible physical handoff into the next
+           exercise. In-song chaining on the mover's physical location.
+           Refined further, among those, by one whose `(location_start,
+           direction_start)` matches the previous pick's location/direction
+           pair at whichever transition point it matched on — a full
+           location+direction match beats a location-only one, which
+           still beats no match at all.
         3. Among whichever candidates that leaves, the one whose
            `movement_pattern` has been used least so far in this
            selection; further ties break randomly via `rng`.
@@ -205,9 +212,28 @@ def select_combo(
             if exact_match:
                 eligible = exact_match
 
-            chained = [e for e in eligible if e.mover_position_start == previous.mover_position_end]
-            if chained:
-                eligible = chained
+            # A single exercise has two transition points -- its own start
+            # and its own end -- either one is a plausible physical handoff
+            # into the next pick (e.g. a set that returns to the start
+            # position on its last rep, not just one that holds at the
+            # end). location/direction are paired per transition point, not
+            # matched independently, so a location match via one point can't
+            # combine with a direction match via the other.
+            previous_states = {
+                (previous.location_start, previous.direction_start),
+                (previous.location_end, previous.direction_end),
+            }
+            previous_locations = {location for location, _ in previous_states}
+
+            location_chained = [e for e in eligible if e.location_start in previous_locations]
+            if location_chained:
+                eligible = location_chained
+
+                direction_chained = [
+                    e for e in eligible if (e.location_start, e.direction_start) in previous_states
+                ]
+                if direction_chained:
+                    eligible = direction_chained
 
         least_used = min(pattern_usage.get(e.movement_pattern, 0) for e in eligible)
         tied = [e for e in eligible if pattern_usage.get(e.movement_pattern, 0) == least_used]

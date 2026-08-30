@@ -29,8 +29,10 @@ EXERCISE = Exercise(
     ],
     # No bodyweight entry: nothing to press without added resistance.
     mover="equipment",
-    mover_position_start="behind_head",
-    mover_position_end="overhead",
+    location_start="behind_head",
+    direction_start="palms_in",
+    location_end="overhead",
+    direction_end="palms_in",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="press",

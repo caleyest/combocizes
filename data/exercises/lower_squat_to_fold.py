@@ -23,8 +23,10 @@ EXERCISE = Exercise(
     # (singular) would wrongly imply one side. The fold that distinguishes
     # this from a plain squat is a refinement cue instead.
     mover="legs",
-    mover_position_start="standing",
-    mover_position_end="squat_bottom",
+    location_start="standing",
+    direction_start=None,
+    location_end="squat",
+    direction_end=None,
     primary_cue=PrimaryCue(
         # Inhale, not exhale: the cue captures the descent (eccentric), and
         # exhale belongs on exertion — the drive back up, not going down.

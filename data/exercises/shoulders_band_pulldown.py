@@ -21,8 +21,10 @@ EXERCISE = Exercise(
         dict(LIGHT_BAND),
     ],
     mover="equipment",
-    mover_position_start="overhead",
-    mover_position_end="shoulder",
+    location_start="overhead",
+    direction_start="palms_front",
+    location_end="shoulder",
+    direction_end="palms_front",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="pull",

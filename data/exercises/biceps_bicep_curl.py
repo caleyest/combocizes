@@ -26,12 +26,15 @@ EXERCISE = Exercise(
         {"heavy_dumbbells": True, "single": True},
         {"light_dumbbells": True, "single": True},
     ],
-    # mover_position_start is "hanging_palms_front" (standard curl grip),
-    # not "hanging_palms_in" like hammer_curl — that grip difference is
-    # what distinguishes a bicep curl from a hammer curl.
+    # direction_start "palms_front" (standard curl grip), not "palms_in"
+    # like hammer_curl, is what distinguishes a bicep curl from a hammer
+    # curl. The forearm supinates through the curl, so grip finishes
+    # "palms_back" at the shoulder rather than staying constant.
     mover="equipment",
-    mover_position_start="hanging_palms_front",
-    mover_position_end="shoulder",
+    location_start="extended",
+    direction_start="palms_front",
+    location_end="shoulder",
+    direction_end="palms_back",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="curl",

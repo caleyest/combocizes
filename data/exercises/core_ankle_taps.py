@@ -21,8 +21,10 @@ EXERCISE = Exercise(
         dict(LIGHT_DUMBBELLS),
     ],
     mover="torso",
-    mover_position_start="upright",
-    mover_position_end="rotated_left",
+    location_start="plank",
+    direction_start="right",
+    location_end="downward_dog",
+    direction_end="left",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="rotate",

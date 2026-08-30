@@ -17,7 +17,8 @@ from combocizes.constants import (
     IMPACT_LEVELS,
     MAT_ORIENTATIONS,
     MOVEMENT_PATTERNS,
-    MOVER_POSITIONS,
+    MOVER_DIRECTIONS,
+    MOVER_LOCATIONS,
     MUSCLE_GROUPS,
     SINGLE_MODIFIER,
 )
@@ -117,12 +118,27 @@ class Exercise:
         mover: What's executing the movement — a body part (e.g. `"leg"`),
             independent of which equipment is selected, or `"equipment"`
             when the cue should name the held equipment instead (e.g. a
-            curl). Must be a key in `combocizes.constants.MOVER_POSITIONS`.
+            curl). Must be a key in `combocizes.constants.MOVER_LOCATIONS`.
             Drives `resolve_moved_object`.
-        mover_position_start: `mover`'s position at the start of the rep.
-            Must be one of `combocizes.constants.MOVER_POSITIONS[mover]`.
-        mover_position_end: `mover`'s position at the end of the rep. Same
-            vocabulary as `mover_position_start`.
+        location_start: `mover`'s physical location at the start of the
+            rep (e.g. `"hanging"`, `"shoulder"`, `"lunge"`). Must be one of
+            `combocizes.constants.MOVER_LOCATIONS[mover]`.
+        location_end: `mover`'s location at the end of the rep. Same
+            vocabulary as `location_start`.
+        direction_start: Which way `mover` is oriented at the start of the
+            rep — grip for `"equipment"` (e.g. `"palms_in"`), step
+            direction for `"leg"` (e.g. `"back"`), rotation side for
+            `"torso"` (e.g. `"left"`). Required, but `None` is a valid
+            value — most movers have no direction axis at all (only
+            `"equipment"`, `"leg"`, and `"torso"` have an entry in
+            `combocizes.constants.MOVER_DIRECTIONS`), and even for those,
+            most locations don't need a stated direction. When not `None`,
+            must be one of `MOVER_DIRECTIONS[mover]`. Never inferred from
+            `direction_end` — the two are independently authored, since a
+            rep's start and end can genuinely face different ways (a
+            reverse lunge starts facing `"forward"` and ends `"back"`).
+        direction_end: Same vocabulary and independence as `direction_start`,
+            at the end of the rep.
         primary_cue: The cue said once, on first appearance.
         mat_orientation_start: Which way the student faces on the mat at
             the start of the rep. One of `combocizes.constants.MAT_ORIENTATIONS`.
@@ -151,8 +167,10 @@ class Exercise:
     impact: str
     equipment_options: list[EquipmentCombo]
     mover: str
-    mover_position_start: str
-    mover_position_end: str
+    location_start: str
+    location_end: str
+    direction_start: str | None
+    direction_end: str | None
     primary_cue: PrimaryCue
     mat_orientation_start: str = "front"
     mat_orientation_end: str = "front"
@@ -164,7 +182,7 @@ class Exercise:
         self._validate_body_positions()
         self._validate_equipment_options()
         self._validate_overrides()
-        self._validate_mover_and_positions()
+        self._validate_mover_location_and_direction()
         self._validate_mat_orientation()
 
     def _validate_classification_fields(self) -> None:
@@ -218,21 +236,32 @@ class Exercise:
                 f"{self.name}: overrides key(s) {unknown} match no equipment_options combo"
             )
 
-    def _validate_mover_and_positions(self) -> None:
-        if self.mover not in MOVER_POSITIONS:
+    def _validate_mover_location_and_direction(self) -> None:
+        if self.mover not in MOVER_LOCATIONS:
             raise ValueError(
                 f"{self.name}: invalid mover {self.mover!r}, "
-                f"expected one of {list(MOVER_POSITIONS)}"
+                f"expected one of {list(MOVER_LOCATIONS)}"
             )
-        allowed = MOVER_POSITIONS[self.mover]
+        allowed_locations = MOVER_LOCATIONS[self.mover]
         for field_name, value in [
-            ("mover_position_start", self.mover_position_start),
-            ("mover_position_end", self.mover_position_end),
+            ("location_start", self.location_start),
+            ("location_end", self.location_end),
         ]:
-            if value not in allowed:
+            if value not in allowed_locations:
                 raise ValueError(
                     f"{self.name}: invalid {field_name} {value!r} for mover {self.mover!r}, "
-                    f"expected one of {allowed}"
+                    f"expected one of {allowed_locations}"
+                )
+
+        allowed_directions = MOVER_DIRECTIONS.get(self.mover, [])
+        for field_name, value in [
+            ("direction_start", self.direction_start),
+            ("direction_end", self.direction_end),
+        ]:
+            if value is not None and value not in allowed_directions:
+                raise ValueError(
+                    f"{self.name}: invalid {field_name} {value!r} for mover {self.mover!r}, "
+                    f"expected None or one of {allowed_directions}"
                 )
 
     def _validate_mat_orientation(self) -> None:

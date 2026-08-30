@@ -19,9 +19,11 @@ EXERCISE = Exercise(
     equipment_options=[
         dict(LIGHT_DUMBBELLS),
     ],
-    mover="hip",
-    mover_position_start="hinged",
-    mover_position_end="extended",
+    mover="equipment",
+    location_start="floor",
+    direction_start="right",
+    location_end="floor",
+    direction_end="left",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="drive",

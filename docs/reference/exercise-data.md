@@ -11,7 +11,7 @@ not-yet-built generator).
 
 | Module        | Responsibility                                                    |
 | ------------- | ------------------------------------------------------------------ |
-| `constants.py` | Controlled vocabularies (movement pattern, body region, muscle group, body position, impact, equipment flags, mover positions) and derived shared constants. |
+| `constants.py` | Controlled vocabularies (movement pattern, body region, muscle group, body position, impact, equipment flags, mover locations/directions) and derived shared constants. |
 | `schema.py`    | The `Exercise` and `PrimaryCue` dataclasses, equipment-combo resolution, and moved-object derivation. |
 | `cues.py`      | The `RefinementCue` dataclass and `build_cue_bank`, which merges the category files under `data/cues/`. |
 | `loader.py`    | Globs and loads `data/exercises/*.py` into one pool. |
@@ -40,18 +40,29 @@ single-flag keys (`HEAVY_DUMBBELLS`, `LIGHT_DUMBBELLS`, `HEAVY_BAND`,
 compound combos (e.g. adding the `single` modifier) are built inline with
 `equipment_combo_key`.
 
-### `mover` and `mover_position`: validated, per-mover vocabulary
+### `mover`, `location`, and `direction`: validated, per-mover vocabulary
 
 `mover` names whatever the primary cue should treat as "the thing doing the
 work": a body part (`"leg"`, `"arm"`, `"torso"`, `"hip"`) or `"equipment"`,
 when the equipment itself is what travels and what the cue should name
-(e.g. a curl). It must be a key in `constants.MOVER_POSITIONS`, and
-`mover_position_start`/`mover_position_end` must each be one of that
-mover's listed positions — different movers travel through entirely
-different physical states, so the vocabulary is namespaced per mover rather
-than shared. `"equipment"`'s list absorbs what an earlier design called
+(e.g. a curl). It must be a key in `constants.MOVER_LOCATIONS`, and
+`location_start`/`location_end` must each be one of that mover's listed
+locations — different movers travel through entirely different physical
+states, so the vocabulary is namespaced per mover rather than shared.
+`"equipment"`'s list absorbs what an earlier design called
 `equipment_position` (there's no separate field for that — see DESIGN.md
 section 1).
+
+`direction_start`/`direction_end` are a second, orthogonal axis — *which
+way* the mover is oriented at each end (grip for equipment, step direction
+for a leg, rotation side for torso), split out from `location` so two
+exercises sharing a location but differing only in direction can still
+chain. Only `"equipment"`, `"leg"`, and `"torso"` have an entry in
+`constants.MOVER_DIRECTIONS`; every other mover's direction fields are
+always `None`. Both direction fields are still **required** on `Exercise`
+— `None` is a valid value, but every exercise must state it explicitly,
+and one side is never inferred from the other (a reverse lunge's leg
+starts facing `"forward"` and ends facing `"back"` — genuinely different).
 
 ### The moved-object noun is derived, not authored
 

@@ -1,7 +1,7 @@
 """Lying Maltese press — MoveBank: 1) Push / Lying Maltese Press.
 
 Low confidence: an uncommon move: uncertain enough about exact form that
-mover_position start/end are an approximation, not a confirmed read.
+location/direction start/end are an approximation, not a confirmed read.
 """
 
 from combocizes.constants import LIGHT_DUMBBELLS
@@ -24,8 +24,10 @@ EXERCISE = Exercise(
         {"light_dumbbells": True, "single": True},
     ],
     mover="equipment",
-    mover_position_start="extended",
-    mover_position_end="overhead",
+    location_start="extended",
+    direction_start="palms_up",
+    location_end="pressed",
+    direction_end="palms_up",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="press",

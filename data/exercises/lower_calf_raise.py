@@ -17,12 +17,14 @@ EXERCISE = Exercise(
         dict(LIGHT_DUMBBELLS),
         dict(LIGHT_BAND),
     ],
-    # mover is "feet" (plural, bilateral heel rise), reusing the same key
-    # as jumping_jacks but a different axis (heel height, not stance
-    # width) — "heels_down"/"heels_up" added to its vocabulary for this.
-    mover="feet",
-    mover_position_start="heels_down",
-    mover_position_end="heels_up",
+    # mover is "legs" (plural, bilateral heel rise) — a heel rise isn't a
+    # stance-width change like jumping_jacks' "feet", so it's namespaced
+    # under "legs" instead, with "up"/"down" as its direction axis.
+    mover="legs",
+    location_start="standing",
+    direction_start="down",
+    location_end="calf_raise",
+    direction_end="up",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="rise",

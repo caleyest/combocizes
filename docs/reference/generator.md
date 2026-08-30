@@ -27,12 +27,20 @@ mid-song. `select_combo` filters `pool` down to exercises that support the
 given combo (and, optionally, an extra `pool_filter` — e.g. restricting to
 a muscle group for a focus song), then picks `count` of them one at a time:
 
-1. **Chaining (primary preference).** After the first pick, prefer a
-   candidate whose `mover_position_start` matches the previous pick's
-   `mover_position_end` — DESIGN.md's own example is a curl ending near the
-   shoulders flowing straight into an overhead press that starts racked.
-   If nothing chains, this step falls back to the full remaining pool
-   rather than failing — chaining is a preference, not a requirement.
+1. **Body-position and mover chaining (primary preference).** After the
+   first pick, several narrowing steps run in sequence — a stance-
+   transition guardrail and same-tier preference on `body_positions`, then
+   an exact body-position match, then mover chaining: a candidate whose
+   `location_start` matches either of the previous pick's own two
+   transition points (its `location_start` or its `location_end` — either
+   is a plausible physical handoff into the next exercise), refined
+   further (among those) by a candidate whose `(location_start,
+   direction_start)` matches the previous pick's location/direction pair
+   at whichever of those two points it matched on — location and direction
+   are paired per transition point, not matched independently. Each step
+   falls back to whatever the previous step left if it would otherwise
+   leave nothing — chaining is a preference, not a requirement, at every
+   level.
 2. **Movement-pattern variety (secondary).** Among whichever candidates
    step 1 left, prefer whichever `movement_pattern` has been used least so
    far in this selection.
@@ -43,10 +51,11 @@ Both the chaining state and the pattern-usage counts are scoped to one
 `select_combo` call — they reset for the next song, not carried across a
 whole class.
 
-`mover_position_start`/`mover_position_end` are validated against
-`constants.MOVER_POSITIONS` (see [Exercise data model](exercise-data.md)),
-but chaining itself is still exact-string-match on top of that — two
-exercises describing the same physical position with different words from
+`location_start`/`location_end` are validated against
+`constants.MOVER_LOCATIONS`, and `direction_start`/`direction_end` against
+`constants.MOVER_DIRECTIONS` (see [Exercise data model](exercise-data.md)),
+but chaining itself is still exact-value-match on top of that — two
+exercises describing the same physical location with different words from
 that vocabulary simply won't chain. Worth keeping consistent across
 `data/exercises/*.py` files as more get authored.
 

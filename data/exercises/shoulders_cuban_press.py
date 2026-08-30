@@ -17,8 +17,10 @@ EXERCISE = Exercise(
     # No bodyweight entry: there's nothing to press against without
     # dumbbells or a band, so a bodyweight combo wouldn't mean anything here.
     mover="equipment",
-    mover_position_start="heart's center",
-    mover_position_end="overhead",
+    location_start="extended",
+    direction_start="palms_back",
+    location_end="overhead",
+    direction_end="palms_front",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="press",

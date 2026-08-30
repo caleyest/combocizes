@@ -58,22 +58,22 @@ def test_select_combo_prefers_chaining_over_variety(make_exercise) -> None:
         name="first",
         movement_pattern="pull",
         mover="equipment",
-        mover_position_start="hanging_palms_in",
-        mover_position_end="shoulder",
+        location_start="extended",
+        location_end="shoulder",
     )
     chains = make_exercise(
         name="chains",
         movement_pattern="pull",
         mover="equipment",
-        mover_position_start="shoulder",
-        mover_position_end="overhead",
+        location_start="shoulder",
+        location_end="overhead",
     )
     would_win_on_variety = make_exercise(
         name="would_win_on_variety",
         movement_pattern="push",
         mover="equipment",
-        mover_position_start="racked",
-        mover_position_end="overhead",
+        location_start="racked",
+        location_end="overhead",
     )
     pool = {e.name: e for e in [first, chains, would_win_on_variety]}
     rng = random.Random(0)
@@ -92,8 +92,8 @@ def test_select_combo_prefers_exact_match_over_mover_chaining(make_exercise) -> 
         body_positions=[BodyPosition.held("standing_narrow")],
         movement_pattern="pull",
         mover="equipment",
-        mover_position_start="hanging_palms_in",
-        mover_position_end="shoulder",
+        location_start="extended",
+        location_end="shoulder",
     )
     would_win_on_chaining = make_exercise(
         name="would_win_on_chaining",
@@ -105,16 +105,16 @@ def test_select_combo_prefers_exact_match_over_mover_chaining(make_exercise) -> 
         body_positions=[BodyPosition.held("standing_wide")],
         movement_pattern="pull",
         mover="equipment",
-        mover_position_start="shoulder",
-        mover_position_end="overhead",
+        location_start="shoulder",
+        location_end="overhead",
     )
     same_stance = make_exercise(
         name="same_stance",
         body_positions=[BodyPosition.held("standing_narrow")],
         movement_pattern="push",
         mover="equipment",
-        mover_position_start="racked",
-        mover_position_end="overhead",
+        location_start="racked",
+        location_end="overhead",
     )
     pool = {e.name: e for e in [first, would_win_on_chaining, same_stance]}
     rng = random.Random(0)
@@ -123,7 +123,7 @@ def test_select_combo_prefers_exact_match_over_mover_chaining(make_exercise) -> 
 
     if selection.exercises[0].name == "first":
         # "same_stance" must win the second slot even though
-        # "would_win_on_chaining" chains on mover_position, since an exact
+        # "would_win_on_chaining" chains on location, since an exact
         # body-position match is now the primary preference.
         assert selection.exercises[1].name == "same_stance"
 
@@ -133,22 +133,22 @@ def test_select_combo_falls_back_to_variety_when_nothing_chains(make_exercise) -
         name="first",
         movement_pattern="pull",
         mover="equipment",
-        mover_position_start="hanging_palms_in",
-        mover_position_end="shoulder",
+        location_start="extended",
+        location_end="shoulder",
     )
     no_chain_a = make_exercise(
         name="no_chain_a",
         movement_pattern="pull",
         mover="equipment",
-        mover_position_start="racked",
-        mover_position_end="racked",
+        location_start="racked",
+        location_end="racked",
     )
     no_chain_b = make_exercise(
         name="no_chain_b",
         movement_pattern="push",
         mover="equipment",
-        mover_position_start="racked",
-        mover_position_end="racked",
+        location_start="racked",
+        location_end="racked",
     )
     pool = {e.name: e for e in [first, no_chain_a, no_chain_b]}
     rng = random.Random(0)
@@ -157,9 +157,217 @@ def test_select_combo_falls_back_to_variety_when_nothing_chains(make_exercise) -
 
     if selection.exercises[0].name == "first":
         # Neither remaining candidate chains from "first" (its
-        # mover_position_end "shoulder" matches neither's start), so variety
+        # location_end "shoulder" matches neither's start), so variety
         # picks the exercise whose pattern ("push") hasn't been used yet.
         assert selection.exercises[1].name == "no_chain_b"
+
+
+def test_select_combo_location_match_wins_even_without_a_direction_match(make_exercise) -> None:
+    # The direct regression test for the bug that motivated the
+    # location/direction split: hammer_curl ends at bare location "shoulder"
+    # (no stated direction), and overhead_press_narrow starts at "shoulder"
+    # with direction "palms_in" -- location alone must be enough to chain.
+    first = make_exercise(
+        name="first",
+        movement_pattern="pull",
+        mover="equipment",
+        location_start="hearts_center",
+        direction_start=None,
+        location_end="shoulder",
+        direction_end=None,
+    )
+    location_chains = make_exercise(
+        name="location_chains",
+        movement_pattern="push",
+        mover="equipment",
+        location_start="shoulder",
+        direction_start="palms_in",
+        location_end="overhead",
+        direction_end="palms_in",
+    )
+    no_match = make_exercise(
+        name="no_match",
+        movement_pattern="push",
+        mover="equipment",
+        location_start="racked",
+        direction_start=None,
+        location_end="racked",
+        direction_end=None,
+    )
+    pool = {e.name: e for e in [first, location_chains, no_match]}
+    rng = random.Random(0)
+
+    selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=rng)
+
+    if selection.exercises[0].name == "first":
+        assert selection.exercises[1].name == "location_chains"
+
+
+def test_select_combo_direction_match_refines_a_location_match(make_exercise) -> None:
+    first = make_exercise(
+        name="first",
+        movement_pattern="pull",
+        mover="equipment",
+        location_start="hearts_center",
+        direction_start="palms_in",
+        location_end="shoulder",
+        direction_end="palms_in",
+    )
+    location_only = make_exercise(
+        name="location_only",
+        movement_pattern="push",
+        mover="equipment",
+        location_start="shoulder",
+        direction_start="palms_front",
+        location_end="overhead",
+        direction_end="palms_front",
+    )
+    full_match = make_exercise(
+        name="full_match",
+        movement_pattern="push",
+        mover="equipment",
+        location_start="shoulder",
+        direction_start="palms_in",
+        location_end="overhead",
+        direction_end="palms_in",
+    )
+    pool = {e.name: e for e in [first, location_only, full_match]}
+    rng = random.Random(0)
+
+    selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=rng)
+
+    if selection.exercises[0].name == "first":
+        # Both candidates chain on location, but "full_match" also matches
+        # grip -- full match beats location-only, same shape as the
+        # body_positions exact-match preference.
+        assert selection.exercises[1].name == "full_match"
+
+
+def test_select_combo_chains_on_the_previous_picks_own_start_transition_point(
+    make_exercise,
+) -> None:
+    # A single exercise has two transition points, its own start and its
+    # own end -- either is a plausible physical handoff into the next pick
+    # (e.g. a set that returns to the start position on its last rep).
+    first = make_exercise(
+        name="first",
+        movement_pattern="pull",
+        mover="equipment",
+        location_start="racked",
+        direction_start="palms_in",
+        location_end="overhead",
+        direction_end="palms_front",
+    )
+    chains_via_start = make_exercise(
+        name="chains_via_start",
+        movement_pattern="push",
+        mover="equipment",
+        location_start="racked",
+        direction_start="palms_in",
+        location_end="floor",
+        direction_end=None,
+    )
+    no_match = make_exercise(
+        name="no_match",
+        movement_pattern="push",
+        mover="equipment",
+        location_start="floor",
+        direction_start=None,
+        location_end="floor",
+        direction_end=None,
+    )
+    pool = {e.name: e for e in [first, chains_via_start, no_match]}
+    rng = random.Random(0)
+
+    selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=rng)
+
+    if selection.exercises[0].name == "first":
+        assert selection.exercises[1].name == "chains_via_start"
+
+
+def test_select_combo_pairs_location_and_direction_within_one_transition_point(
+    make_exercise,
+) -> None:
+    # A candidate can't combine a location match on one of "first"'s
+    # transition points with a direction match on the *other* -- the pair
+    # has to come from the same point for a full match.
+    first = make_exercise(
+        name="first",
+        movement_pattern="pull",
+        mover="equipment",
+        location_start="racked",
+        direction_start="palms_in",
+        location_end="overhead",
+        direction_end="palms_front",
+    )
+    mismatched_pairing = make_exercise(
+        name="mismatched_pairing",
+        movement_pattern="push",
+        mover="equipment",
+        # location matches "first"'s end ("overhead"), but direction only
+        # matches "first"'s start ("palms_in") -- not a real pair.
+        location_start="overhead",
+        direction_start="palms_in",
+        location_end="floor",
+        direction_end=None,
+    )
+    full_match_via_end = make_exercise(
+        name="full_match_via_end",
+        movement_pattern="push",
+        mover="equipment",
+        location_start="overhead",
+        direction_start="palms_front",
+        location_end="floor",
+        direction_end=None,
+    )
+    pool = {e.name: e for e in [first, mismatched_pairing, full_match_via_end]}
+    rng = random.Random(0)
+
+    selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=rng)
+
+    if selection.exercises[0].name == "first":
+        assert selection.exercises[1].name == "full_match_via_end"
+
+
+def test_select_combo_chains_on_location_alone_when_mover_has_no_direction_axis(
+    make_exercise,
+) -> None:
+    # "hip" has no entry in MOVER_DIRECTIONS at all -- the majority case,
+    # since most movers have no direction axis and both sides are always None.
+    first = make_exercise(
+        name="first",
+        movement_pattern="squat",
+        mover="hip",
+        location_start="neutral",
+        direction_start=None,
+        location_end="hinged",
+        direction_end=None,
+    )
+    chains = make_exercise(
+        name="chains",
+        movement_pattern="hinge",
+        mover="hip",
+        location_start="hinged",
+        direction_start=None,
+        location_end="neutral",
+        direction_end=None,
+    )
+    would_lose = make_exercise(
+        name="would_lose",
+        movement_pattern="hinge",
+        mover="hip",
+        location_start="raised",
+        direction_start=None,
+        location_end="neutral",
+        direction_end=None,
+    )
+    pool = {e.name: e for e in [first, chains, would_lose]}
+    rng = random.Random(0)
+
+    selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=rng)
+
+    if selection.exercises[0].name == "first":
+        assert selection.exercises[1].name == "chains"
 
 
 def test_select_combo_records_shared_stance_when_available(make_exercise) -> None:
@@ -168,16 +376,16 @@ def test_select_combo_records_shared_stance_when_available(make_exercise) -> Non
         body_positions=[BodyPosition.held("standing_narrow"), BodyPosition.held("standing_wide")],
         movement_pattern="pull",
         mover="equipment",
-        mover_position_start="hanging_palms_in",
-        mover_position_end="shoulder",
+        location_start="extended",
+        location_end="shoulder",
     )
     same_stance = make_exercise(
         name="same_stance",
         body_positions=[BodyPosition.held("standing_narrow"), BodyPosition.held("standing_wide")],
         movement_pattern="push",
         mover="equipment",
-        mover_position_start="racked",
-        mover_position_end="overhead",
+        location_start="racked",
+        location_end="overhead",
     )
     pool = {e.name: e for e in [first, same_stance]}
     rng = random.Random(0)
@@ -199,16 +407,16 @@ def test_select_combo_records_own_stance_when_nothing_shared(make_exercise) -> N
         body_positions=[BodyPosition.held("standing_narrow")],
         movement_pattern="pull",
         mover="equipment",
-        mover_position_start="hanging_palms_in",
-        mover_position_end="shoulder",
+        location_start="extended",
+        location_end="shoulder",
     )
     no_shared_stance = make_exercise(
         name="no_shared_stance",
         body_positions=[BodyPosition.held("supine")],
         movement_pattern="push",
         mover="equipment",
-        mover_position_start="racked",
-        mover_position_end="overhead",
+        location_start="racked",
+        location_end="overhead",
     )
     pool = {e.name: e for e in [first, no_shared_stance]}
     rng = random.Random(0)
@@ -235,24 +443,24 @@ def test_select_combo_stays_on_the_same_specific_stance_whenever_possible(make_e
             body_positions=[BodyPosition.held("plank"), BodyPosition.held("hinge")],
             movement_pattern="pull",
             mover="equipment",
-            mover_position_start="hanging_palms_in",
-            mover_position_end="shoulder",
+            location_start="extended",
+            location_end="shoulder",
         ),
         "tricep_kickbacks": make_exercise(
             name="tricep_kickbacks",
             body_positions=[BodyPosition.held("kneeling"), BodyPosition.held("hinge")],
             movement_pattern="push",
             mover="equipment",
-            mover_position_start="racked",
-            mover_position_end="overhead",
+            location_start="racked",
+            location_end="overhead",
         ),
         "chest_fly": make_exercise(
             name="chest_fly",
             body_positions=[BodyPosition.held("standing_wide"), BodyPosition.held("hinge")],
             movement_pattern="squat",
             mover="equipment",
-            mover_position_start="racked",
-            mover_position_end="racked",
+            location_start="racked",
+            location_end="racked",
         ),
     }
 
@@ -274,8 +482,8 @@ def test_select_combo_maximizes_pattern_variety_with_no_chaining_signal(make_exe
                 name=name,
                 movement_pattern=pattern,
                 mover="equipment",
-                mover_position_start="racked",
-                mover_position_end="racked",
+                location_start="racked",
+                location_end="racked",
             )
     rng = random.Random(42)
 

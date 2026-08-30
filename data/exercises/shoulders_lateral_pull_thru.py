@@ -19,8 +19,10 @@ EXERCISE = Exercise(
         dict(HEAVY_DUMBBELLS),
     ],
     mover="equipment",
-    mover_position_start="hanging_palms_in",
-    mover_position_end="extended",
+    location_start="extended",
+    direction_start="palms_in",
+    location_end="overhead",
+    direction_end="palms_in",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="raise",

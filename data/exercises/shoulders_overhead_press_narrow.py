@@ -1,8 +1,8 @@
 """Overhead press, narrow grip — MoveBank: 1) Push / Overhead press variation.
 
 Decomposed from the base overhead press per grip: palms facing in (neutral
-grip). Distinguished from the wide/Arnold variants by mover_position_start
-grip only — primary cue text is unchanged, same convention as
+grip). Distinguished from the wide/Arnold variants by direction_start/
+direction_end grip only — primary cue text is unchanged, same convention as
 hammer_curl vs. bicep_curl.
 """
 
@@ -33,8 +33,10 @@ EXERCISE = Exercise(
         {"light_dumbbells": True, "single": True},
     ],
     mover="equipment",
-    mover_position_start="shoulder_palms_in",
-    mover_position_end="overhead",
+    location_start="shoulder",
+    direction_start="palms_in",
+    location_end="overhead",
+    direction_end="palms_in",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="press",

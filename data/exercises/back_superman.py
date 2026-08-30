@@ -19,8 +19,10 @@ EXERCISE = Exercise(
     # implies one side. "back" isn't a paired body part, so the simplest
     # cue just names it directly.
     mover="back",
-    mover_position_start="neutral",
-    mover_position_end="arched",
+    location_start="neutral",
+    direction_start=None,
+    location_end="arched",
+    direction_end=None,
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="lift",

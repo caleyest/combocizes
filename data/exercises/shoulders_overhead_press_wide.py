@@ -29,8 +29,10 @@ EXERCISE = Exercise(
         {"light_dumbbells": True, "single": True},
     ],
     mover="equipment",
-    mover_position_start="shoulder_palms_front",
-    mover_position_end="overhead",
+    location_start="shoulder",
+    direction_start="palms_front",
+    location_end="overhead",
+    direction_end="palms_front",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="press",

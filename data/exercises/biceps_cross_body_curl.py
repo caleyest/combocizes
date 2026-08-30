@@ -24,8 +24,10 @@ EXERCISE = Exercise(
         dict(LIGHT_DUMBBELLS),
     ],
     mover="equipment",
-    mover_position_start="hanging_palms_in",
-    mover_position_end="shoulder",
+    location_start="extended",
+    direction_start="palms_front",
+    location_end="shoulder",
+    direction_end="palms_back",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="curl",

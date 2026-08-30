@@ -25,22 +25,27 @@ Rather than one entry per equipment variant (risk of drift), each exercise carri
 
 ### Mover fields (what's actually moving)
 
-There's no separate `equipment_position` field — an earlier design had one, but it was never implemented and would have needed nearly the same vocabulary as `mover_position` anyway. Instead, `mover`/`mover_position_start`/`mover_position_end` are the *only* fields for "where is the thing that's moving":
+There's no separate `equipment_position` field — an earlier design had one, but it was never implemented and would have needed nearly the same vocabulary as the mover fields anyway. Instead, `mover`/`location_start`/`location_end`/`direction_start`/`direction_end` are the *only* fields for "where is the thing that's moving":
 
-- `mover` — what's executing the movement: a body part (e.g. `"leg"`, `"arm"`, `"torso"`, `"hip"`), independent of which equipment is selected, or `"equipment"` when the equipment itself is what travels and what the cue should name (e.g. a curl). Controlled vocabulary — must be a key in `MOVER_POSITIONS` (below).
-- `mover_position_start` / `mover_position_end` — that mover's position at the start and end of the rep (e.g. a reverse lunge: `mover: "leg"`, start `"standing"`, end `"lunge_back"`). Controlled vocabulary, namespaced **per mover** (a leg's travel states and the equipment's are unrelated), for the same reason as the other classification fields — authoring consistency and typo-catching:
+- `mover` — what's executing the movement: a body part (e.g. `"leg"`, `"arm"`, `"torso"`, `"hip"`), independent of which equipment is selected, or `"equipment"` when the equipment itself is what travels and what the cue should name (e.g. a curl). Controlled vocabulary — must be a key in `MOVER_LOCATIONS` (below).
+- `location_start` / `location_end` — that mover's physical location at the start and end of the rep (e.g. a reverse lunge: `mover: "leg"`, start `"standing"`, end `"lunge"`). Controlled vocabulary, namespaced **per mover** (a leg's travel states and the equipment's are unrelated), for the same reason as the other classification fields — authoring consistency and typo-catching.
+- `direction_start` / `direction_end` — which way the mover is oriented at the start and end of the rep: grip for `"equipment"` (e.g. `"palms_in"`), step direction for `"leg"` (e.g. `"back"`), rotation side for `"torso"` (e.g. `"left"`). **Required fields, but `None` is a valid value** — most movers have no direction axis at all, and even the ones that do (only `"equipment"`, `"leg"`, `"legs"`, and `"torso"` have an entry in `MOVER_DIRECTIONS`) don't need a stated direction at every location. Requiring the field rather than defaulting it forces every exercise author to consciously decide "no direction applies here" instead of silently omitting it. **Never inferred from one another** — `direction_start` and `direction_end` are independently authored, since a rep's start and end can genuinely face different ways (a reverse lunge starts facing `"forward"` and ends `"back"`).
+
+Location and direction used to be fused into one compound field (`mover_position_start`/`mover_position_end`, e.g. `"hanging_palms_in"`, `"lunge_back"`, `"rotated_left"`) — split apart because chaining (section 5) requires an exact string match, and two exercises that share a location but differ only in grip/step-direction never chained under the fused scheme (a hammer curl ending at bare `"shoulder"` couldn't chain into a press starting `"shoulder_palms_in"`).
 
 ```python
-MOVER_POSITIONS = {
+MOVER_LOCATIONS = {
     "equipment": [
         "racked",
-        "hanging_palms_in",
-        "hanging_palms_front",
-        "hanging_palms_back",
-        "heart's center",
+        "hearts_center",
+        "bent",
         "overhead",
+        "behind_head",
         "extended",
         "shoulder",
+        "fly",
+        "pressed",
+        "floor",
         "around_thighs",
         "around_ankles",
         "anchored_underfoot",
@@ -48,33 +53,47 @@ MOVER_POSITIONS = {
     ],
     "leg": [
         "standing",
-        "lunge_back",
-        "lunge_forward",
-        "lunge_lateral",
-        "squat_bottom",
+        "lunge",
+        "squat",
         "kneeling",
         "raised_bent",
         "raised_straight",
         "straddle",
     ],
-    "legs": ["standing", "squat_bottom", "kneeling"],
+    "legs": ["standing", "squat", "kneeling", "calf_raise", "hinge"],
     "arm": ["at_sides", "extended", "raised", "overhead", "bent"],
-    "torso": ["upright", "rotated_left", "rotated_right", "flexed_forward", "extended_back"],
+    "arms": ["bent", "extended"],
+    "torso": [
+        "upright",
+        "rotated",
+        "flexed_forward",
+        "extended_back",
+        "plank",
+        "downward_dog",
+        "forward_fold",
+    ],
     "hip": ["neutral", "hinged", "extended", "raised"],
     "back": ["neutral", "arched"],
     "feet": ["together", "apart"],
 }
+
+MOVER_DIRECTIONS = {
+    "equipment": ["palms_in", "palms_front", "palms_back", "palms_up", "left", "right"],
+    "leg": ["back", "forward", "lateral", "kickstand"],
+    "legs": ["up", "down"],
+    "torso": ["left", "right"],
+}
 ```
 
-`"arm"`/`"hip"` aren't used by any exercise yet — starter placeholders, adjust the first time a real exercise needs a value not listed.
+`"arm"`/`"hip"` aren't used by any exercise yet — starter placeholders, adjust the first time a real exercise needs a value not listed. A mover with no entry in `MOVER_DIRECTIONS` (`"arm"`, `"arms"`, `"hip"`, `"back"`, `"feet"`) simply never takes a non-`None` direction.
 
-`"back"`, `"legs"`, and `"feet"` exist alongside `"leg"`/`"arm"`/`"torso"`/`"hip"` for a specific reason: `mover` is read straight into the cue as `"your {mover}"`, so it has to be a noun that's correct in that singular-possessive form. That's fine for a genuinely unilateral movement (`"leg"` in a reverse lunge — one leg moves), but wrong for a movement where both sides of a paired limb act together — `"lift your arm off the mat"` when both arms lift reads as one arm. `"back"` and `"torso"` sidestep this because they're unpaired; `"legs"` and `"feet"` sidestep it because they're already plural (`"legs"` for a bend/descend, like a squat; `"feet"` for a stance-width change, like a jumping jack). Prefer one of those (extending `MOVER_POSITIONS` with a new key if none fits) over forcing a paired-limb term to cover a bilateral movement.
+`"back"`, `"legs"`, `"arms"`, and `"feet"` exist alongside `"leg"`/`"arm"`/`"torso"`/`"hip"` for a specific reason: `mover` is read straight into the cue as `"your {mover}"`, so it has to be a noun that's correct in that singular-possessive form. That's fine for a genuinely unilateral movement (`"leg"` in a reverse lunge — one leg moves), but wrong for a movement where both sides of a paired limb act together — `"lift your arm off the mat"` when both arms lift reads as one arm. `"back"` and `"torso"` sidestep this because they're unpaired; `"legs"`, `"arms"`, and `"feet"` sidestep it because they're already plural (`"legs"` for a bend/descend, like a squat or hinge; `"arms"` for a bilateral bodyweight press, like a push-up; `"feet"` for a stance-width change, like a jumping jack). Prefer one of those (extending `MOVER_LOCATIONS` with a new key if none fits) over forcing a paired-limb term to cover a bilateral movement.
 
-**When more than one mover is physically plausible, break the tie with `movement_pattern`, not by which reads most distinctively.** A squat (`movement_pattern: "squat"`) should use a leg-family mover even though "the fold" is what makes `squat_to_fold` distinct from a plain squat — the fold becomes a refinement cue, the squat descent stays the primary cue. A `"core"` exercise like `bird_dog` has no limb of its own in `movement_pattern` terms; its job is torso stability, not a limb reach, and picking arm-vs-leg as the mover would be an arbitrary tie-break between two limbs that move simultaneously and symmetrically — so `mover="torso"` (held, `mover_position_start == mover_position_end`) with both limbs named in a refinement cue instead.
+**When more than one mover is physically plausible, break the tie with `movement_pattern`, not by which reads most distinctively.** A squat or hinge (`movement_pattern: "squat"`/`"hinge"`) should use a leg-family mover even when a secondary shape change is what makes an exercise distinct from its plainer sibling — the fold in `squat_to_fold`, e.g. — since that becomes a refinement cue, and the squat/hinge itself stays the primary cue. A `"core"` exercise like `bird_dog` has no limb of its own in `movement_pattern` terms; its job is torso stability, not a limb reach, and picking arm-vs-leg as the mover would be an arbitrary tie-break between two limbs that move simultaneously and symmetrically — so `mover="torso"` (held, `location_start == location_end`) with both limbs named in a refinement cue instead.
 
-Example — reverse lunge with dumbbells: `mover: "leg"`, `mover_position_start: "standing"`, `mover_position_end: "lunge_back"`. The dumbbells stay racked and never travel; the leg does — so nothing about the equipment is tracked here at all for this exercise.
+Example — reverse lunge with dumbbells: `mover: "leg"`, `location_start: "standing"`, `direction_start: "forward"`, `location_end: "lunge"`, `direction_end: "back"`. The dumbbells stay racked and never travel; the leg does — so nothing about the equipment is tracked here at all for this exercise.
 
-- `mat_orientation_start` / `mat_orientation_end` — which way the student faces on the mat (`"front"` / `"left"` / `"right"` / `"back"`) at the start and end of the rep. Distinct from `mover_position` and `body_positions`: neither can express a turn (a fast-feet drill pivoting to face right isn't a stance-width change or a limb-travel state, it's a change of facing direction). Both default to `"front"`, so only exercises that actually turn — mostly plyo — ever need to set them; the plyo-burst selector chains on them the same way `select_combo` chains on `mover_position`.
+- `mat_orientation_start` / `mat_orientation_end` — which way the student faces on the mat (`"front"` / `"left"` / `"right"` / `"back"`) at the start and end of the rep. Distinct from the mover fields and `body_positions`: neither can express a turn (a fast-feet drill pivoting to face right isn't a stance-width change or a limb-travel state, it's a change of facing direction). Both default to `"front"`, so only exercises that actually turn — mostly plyo — ever need to set them; the plyo-burst selector chains on them the same way `select_combo` chains on the mover fields.
 
 **Next step, not built yet:** for an exercise where equipment is held but isn't the mover (like the reverse lunge above), what to do with it — "keep your dumbbells racked at your sides" — is a candidate for a common, shared refinement cue (authored once in the cue bank, pointed at the relevant exercises via the cue's own `exercise_ids`) rather than a structured schema field.
 
@@ -139,7 +158,7 @@ CUE_BANK = [
 
 ### Format: Python, not YAML/JSON
 
-Each exercise and cue is authored directly as a Python object (dataclass instance), not YAML/JSON. Since equipment combos are per-category boolean flags, a Python data file can reference the same constants used elsewhere — `MOVER_POSITIONS`, the `movement_pattern` enum — instead of duplicating them as bare strings that can silently drift out of sync with the enum. A `@dataclass` with `__post_init__` validation (asserting equipment flags are drawn from the known set, `movement_pattern` is a valid value, etc.) catches authoring typos at import time rather than only when the generator runs, without needing a separate schema-validation library (pydantic/jsonschema) for something the project already has enum/constant machinery for; a cue's `exercise_ids` is the one thing that can't be validated this way, since it's checked against the exercise pool in `load_exercises` instead (see section 2). Trade-off: less safe to hand-edit blind than YAML, since loading a file executes code — acceptable here since this is a single-maintainer Python project, not a format meant for non-programmers to edit.
+Each exercise and cue is authored directly as a Python object (dataclass instance), not YAML/JSON. Since equipment combos are per-category boolean flags, a Python data file can reference the same constants used elsewhere — `MOVER_LOCATIONS`, the `movement_pattern` enum — instead of duplicating them as bare strings that can silently drift out of sync with the enum. A `@dataclass` with `__post_init__` validation (asserting equipment flags are drawn from the known set, `movement_pattern` is a valid value, etc.) catches authoring typos at import time rather than only when the generator runs, without needing a separate schema-validation library (pydantic/jsonschema) for something the project already has enum/constant machinery for; a cue's `exercise_ids` is the one thing that can't be validated this way, since it's checked against the exercise pool in `load_exercises` instead (see section 2). Trade-off: less safe to hand-edit blind than YAML, since loading a file executes code — acceptable here since this is a single-maintainer Python project, not a format meant for non-programmers to edit.
 
 ### Exercises: one file per exercise
 
@@ -179,8 +198,8 @@ Worked time budget (60 min class, midpoint durations): warmup 6 + plyo 12 + arms
 - **Stance-transition guardrail**, applied before the preference ordering below: `body_positions` values are grouped into three tiers by transition cost from standing — 1) upright (`standing_narrow`, `standing_wide`, `hinge`, `lunge`, `squat`), 2) bridge (`kneeling`, `seated`), 3) floor (`plank`, `supine`, `prone`). A pick's assumed stance may not transition directly between tier 1 and tier 3 — going straight from upright to the floor skips the low-cost stepping-stone the bridge tier provides. Tier 1 ↔ tier 2 and tier 2 ↔ tier 3 are both unrestricted — once already grounded (or already at the bridge), moving further is a low-cost shift by comparison. The restriction is symmetric (applies whichever direction the transition runs) and scoped to one song (intra-`select_combo` picks only), consistent with the rule below that segment-to-segment transitions aren't optimized against. `plank`/`supine`/`prone` sharing tier 3 doesn't mean they're free to swap between — no separate mechanism for that, since the exact-match preference below already deprioritizes any stance change, tier-crossing or not. Enforcement today: a hard filter within each pick's candidate set, but with no fallback if it empties that set — the pick falls through to the full remaining pool and the guardrail is silently violated for that one pick, same as the exact-match preference's own fallback below. Revisit if that's too permissive: either force a bridge-stance pick into the sequence when needed, or backtrack and reselect earlier picks so a valid combo is found instead of ever accepting a banned jump (real work, not yet designed).
 - **Same-tier preference**, a second guardrail-adjacent step, applied after the hard filter above and before the preference ordering below: crossing into (or out of) the bridge tier is *legal* per the guardrail, but it isn't free, so a candidate that can stay in the previous pick's own tier is preferred over one that can only continue via a different (still-legal) tier. This is coarser than the exact-match preference below — it only checks tier, not the specific stance value — so it narrows the candidate set a step before exact match gets a turn.
 - **Plane-transition guardrail**, a third axis alongside the tier guardrails above: `standing_narrow` and `standing_wide` are not interchangeable by default, even though both sit in tier 1 — a stance-width change is its own real cost, separate from height. There's no hand-picked exception list for this; the rule is structural, since chaining matches on the specific `body_positions` pair's `.start`/`.end` value (see section 1's `BodyPosition` field) rather than a coarser tier or a single unordered `body_positions` list — any exercise whose own declared pair already spans narrow and wide absorbs the plane change as part of its normal chaining, the same way a tier-spanning exercise would. Example: a reverse lunge (`BodyPosition("standing_narrow", "lunge")`) chains directly into a sumo-squat variant whose own pair starts `"lunge"` and ends `"standing_wide"` — the plane change happens inside that second exercise's own rep, not as an illegal jump between two static-stance picks. A plain sumo squat (`BodyPosition.held("standing_wide")`, no transition) can't take that same role. Symmetric, same scope as the tier guardrails (intra-song only).
-- Each pick after the first is narrowed by the guardrails above, then by preference, in order. First, a candidate with a `body_positions` pair whose `.start` exactly matches the previous pick's recorded `.end` — same specific stance, no transition needed — since a stance change (e.g. standing to supine) costs real time and disrupts flow more than a mover-position mismatch does. Among those (or whatever the guardrail/tier steps left if none match exactly), a candidate whose `mover_position_start` matches the previous pick's `mover_position_end` — in-song chaining (e.g. a curl ending near the shoulders flowing straight into an overhead press starting racked). Among whichever candidates that leaves, the exercise whose `movement_pattern` has been used least so far in the selection is preferred; further ties break randomly. Since an exercise can list more than one valid `BodyPosition` pair, the specific one actually assumed for each pick — mirroring the same guardrail/same-tier/exact-match ordering, applied to the winning candidate's own pairs — is recorded on the result (`ComboSelection.body_positions`), rather than left for callers to re-derive.
-- **Plyo bursts get their own selection function** (`select_plyo_burst`), not `select_combo` — every plyo-pool candidate already shares `movement_pattern: "plyo"`, so movement-pattern variety wouldn't discriminate among them, and impact needs a repeating pattern rather than free variety. It follows a **2:1 or 3:1 high:low impact pattern** (e.g. high, high, low, high, high, low, ...; ratio chosen per burst), and within whichever impact a slot needs, prefers a candidate whose `mat_orientation_start` matches the previous pick's `mat_orientation_end` — the same end-matches-next-start mechanism as `mover_position` chaining, but for which way the student faces on the mat (see `mat_orientation_start`/`mat_orientation_end` in section 1's mover fields — a fast-feet drill turning to face right is the case this exists for).
+- Each pick after the first is narrowed by the guardrails above, then by preference, in order. First, a candidate with a `body_positions` pair whose `.start` exactly matches the previous pick's recorded `.end` — same specific stance, no transition needed — since a stance change (e.g. standing to supine) costs real time and disrupts flow more than a mover mismatch does. Among those (or whatever the guardrail/tier steps left if none match exactly), a candidate whose `location_start` matches either of the previous pick's own two transition points — its `location_start` or its `location_end` — in-song chaining (e.g. a hammer curl ending at the shoulder flowing straight into an overhead press starting at the shoulder). Either of the previous pick's own points is a plausible physical handoff, not just its end, since a set doesn't necessarily hold at the top on its last rep — it may just as well return to the start position. Among those, a further refinement: a candidate whose `(location_start, direction_start)` matches the previous pick's location/direction pair *at whichever of those two points it matched on* (location and direction are paired per transition point, not matched independently — a location match via the previous pick's end can't combine with a direction match via its start) is preferred over a location-only match — full match beats partial, mirroring the exact-match-over-tier shape of the stance guardrails above. Among whichever candidates that leaves, the exercise whose `movement_pattern` has been used least so far in the selection is preferred; further ties break randomly. Since an exercise can list more than one valid `BodyPosition` pair, the specific one actually assumed for each pick — mirroring the same guardrail/same-tier/exact-match ordering, applied to the winning candidate's own pairs — is recorded on the result (`ComboSelection.body_positions`), rather than left for callers to re-derive.
+- **Plyo bursts get their own selection function** (`select_plyo_burst`), not `select_combo` — every plyo-pool candidate already shares `movement_pattern: "plyo"`, so movement-pattern variety wouldn't discriminate among them, and impact needs a repeating pattern rather than free variety. It follows a **2:1 or 3:1 high:low impact pattern** (e.g. high, high, low, high, high, low, ...; ratio chosen per burst), and within whichever impact a slot needs, prefers a candidate whose `mat_orientation_start` matches the previous pick's `mat_orientation_end` — the same end-matches-next-start mechanism as the mover-field chaining above, but for which way the student faces on the mat (see `mat_orientation_start`/`mat_orientation_end` in section 1's mover fields — a fast-feet drill turning to face right is the case this exists for).
 - Resolution order per exercise instance: choose equipment → resolve position/cue overrides → place in sequence.
 - **Class assembly** (`build_class`) sits above both selection functions: it decides segment count/duration (section 4's formula), picks a plyo-burst count (3 or 4), orders the middle segments (plyo bursts inserted into random non-adjacent, non-final gaps among the shuffled focus-song/full-body-combo segments — satisfying both ordering rules in section 4 by construction), and assigns each segment's equipment (guaranteeing the coverage rule in section 4, also by construction, before randomizing the rest). Every non-plyo segment's own selection is computed before final ordering is decided (segments don't chain into each other, so this is safe) — this is what lets the segment immediately before cooldown be chosen, when the pool allows it, from among the non-plyo segments whose selection actually ends in a `LOW_BODY_POSITIONS` stance (section 1), rather than picked blind.
 
@@ -207,6 +226,7 @@ CLI wizard to start (prompts → draft → lock/reroll loop → export finished 
 - Full `muscle_group` taxonomy list
 - Equipment-availability-per-day, impact ceiling, difficulty level, and repeat-avoidance-across-classes were proposed as wizard questions but not selected for v1 — worth revisiting later if needed
 - A common/shared refinement cue for equipment that's held but not the mover (e.g. "keep your dumbbells racked at your sides") — see section 1
+- `MOVER_LOCATIONS["torso"]`'s `"forward_fold"` is still an unused placeholder — `squat_to_fold` ended up keyed on `mover="legs"`, `location_end="squat"` instead, so the fold itself lives only in a refinement cue, not a dedicated location. Revisit if a torso-mover exercise (e.g. a standing forward fold done independent of a squat) actually needs it.
 - Author dedicated warmup and cooldown movements. Both segments currently
   draw from the same `body_region == "full"` pool as full-body combos;
   warmup wants gentler ramp-up moves and cooldown wants static
@@ -220,9 +240,10 @@ CLI wizard to start (prompts → draft → lock/reroll loop → export finished 
 - ~~Body-position-transition model~~ — done: `body_positions` is now a list
   of `BodyPosition(start, end)` pairs (section 1), and `select_combo`
   chaining prefers an exact stance-end == stance-start match the same way
-  it already prefers `mover_position_end == mover_position_start`, with the
-  tier/plane guardrails (section 5) governing what happens when that match
-  fails. Also resolved the pre-cooldown-segment ordering item this
+  it already prefers `location_end == location_start` (refined further by
+  `direction_end == direction_start`), with the tier/plane guardrails
+  (section 5) governing what happens when that match fails. Also resolved
+  the pre-cooldown-segment ordering item this
   unblocked: `build_class` now places, when the pool allows it, a
   low-ending segment (`LOW_BODY_POSITIONS`, section 1) immediately before
   cooldown (section 5).

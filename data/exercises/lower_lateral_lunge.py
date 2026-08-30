@@ -20,11 +20,13 @@ EXERCISE = Exercise(
         dict(LIGHT_DUMBBELLS),
         dict(LIGHT_BAND),
     ],
-    # mover_position "lunge_lateral" is new — added to constants.py alongside
-    # this file, since no existing leg position covered a sideways step.
+    # direction "lateral" is new — added to constants.py alongside this
+    # file, since no existing leg direction covered a sideways step.
     mover="leg",
-    mover_position_start="standing",
-    mover_position_end="lunge_lateral",
+    location_start="standing",
+    direction_start="forward",
+    location_end="lunge",
+    direction_end="lateral",
     primary_cue=PrimaryCue(
         breath="Inhale",
         action="step",

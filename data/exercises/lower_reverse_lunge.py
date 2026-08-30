@@ -17,8 +17,10 @@ EXERCISE = Exercise(
         dict(LIGHT_DUMBBELLS),
     ],
     mover="leg",
-    mover_position_start="standing",
-    mover_position_end="lunge_back",
+    location_start="standing",
+    direction_start="forward",
+    location_end="lunge",
+    direction_end="back",
     # mover is "leg", not "equipment": dumbbells stay racked and never
     # travel, so resolve_moved_object always resolves to "your leg" here,
     # regardless of the equipment combo chosen.

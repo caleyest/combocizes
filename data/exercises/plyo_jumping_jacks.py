@@ -23,8 +23,10 @@ EXERCISE = Exercise(
     # (plural noun) reads correctly where "leg" (singular) would wrongly
     # imply one side.
     mover="feet",
-    mover_position_start="together",
-    mover_position_end="apart",
+    location_start="together",
+    direction_start=None,
+    location_end="apart",
+    direction_end=None,
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="jump",

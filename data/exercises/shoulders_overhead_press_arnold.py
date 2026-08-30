@@ -1,10 +1,9 @@
 """Arnold press — MoveBank: 1) Push / Overhead press variation.
 
 Decomposed from the base overhead press per grip: palms facing back.
-Simplified per direction: the classic Arnold press rotates the grip
-through the press (palms in at the bottom, out at the top) — that
-rotation isn't modeled here, only the starting grip. Revisit if the
-rotation itself needs to be cued.
+The classic Arnold press rotates the grip through the press (palms back
+at the bottom, front at the top) — now modeled directly via
+direction_start/direction_end.
 
 No band option: the rotating grip doesn't work with a band's fixed
 handle, so this drops light_band from the base press's equipment set.
@@ -36,8 +35,10 @@ EXERCISE = Exercise(
         {"light_dumbbells": True, "single": True},
     ],
     mover="equipment",
-    mover_position_start="shoulder_palms_back",
-    mover_position_end="overhead",
+    location_start="shoulder",
+    direction_start="palms_back",
+    location_end="overhead",
+    direction_end="palms_front",
     primary_cue=PrimaryCue(
         breath="Exhale",
         action="press",

@@ -19,7 +19,7 @@ EXERCISE = Exercise(
     mover="leg",
     mover_position_start="standing",
     mover_position_end="lunge_back",
-    # mover is "leg", not EQUIPMENT_MOVER: dumbbells stay racked and never
+    # mover is "leg", not "equipment": dumbbells stay racked and never
     # travel, so resolve_moved_object always resolves to "your leg" here,
     # regardless of the equipment combo chosen.
     primary_cue=PrimaryCue(

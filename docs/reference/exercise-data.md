@@ -11,7 +11,7 @@ not-yet-built generator).
 
 | Module        | Responsibility                                                    |
 | ------------- | ------------------------------------------------------------------ |
-| `constants.py` | Controlled vocabularies (movement pattern, body region, muscle group, body position, impact, equipment flags) and derived shared constants. |
+| `constants.py` | Controlled vocabularies (movement pattern, body region, muscle group, body position, impact, equipment flags, mover positions) and derived shared constants. |
 | `schema.py`    | The `Exercise` and `PrimaryCue` dataclasses, equipment-combo resolution, and moved-object derivation. |
 | `cues.py`      | The `RefinementCue` dataclass and the merged `CUE_BANK`. |
 | `loader.py`    | Globs and loads `data/exercises/*.py` into one pool. |
@@ -40,16 +40,28 @@ single-flag keys (`HEAVY_DUMBBELLS`, `LIGHT_DUMBBELLS`, `HEAVY_BAND`,
 compound combos (e.g. adding the `single` modifier) are built inline with
 `equipment_combo_key`.
 
+### `mover` and `mover_position`: validated, per-mover vocabulary
+
+`mover` names whatever the primary cue should treat as "the thing doing the
+work": a body part (`"leg"`, `"arm"`, `"torso"`, `"hip"`) or `"equipment"`,
+when the equipment itself is what travels and what the cue should name
+(e.g. a curl). It must be a key in `constants.MOVER_POSITIONS`, and
+`mover_position_start`/`mover_position_end` must each be one of that
+mover's listed positions — different movers travel through entirely
+different physical states, so the vocabulary is namespaced per mover rather
+than shared. `"equipment"`'s list absorbs what an earlier design called
+`equipment_position` (there's no separate field for that — see DESIGN.md
+section 1).
+
 ### The moved-object noun is derived, not authored
 
 The primary cue's object noun (e.g. "your dumbbells", "your leg") comes from
-`resolve_moved_object`, not from data an author writes per exercise. It
-looks at `Exercise.mover`:
+`resolve_moved_object`, not from data an author writes per exercise:
 
-- If `mover` is the `EQUIPMENT_MOVER` sentinel (`"equipment"`), the equipment
-  itself is what's moving (e.g. a curl), so the noun is looked up in
-  `EQUIPMENT_PHRASES` for whichever flag is set, singularized if `single` is
-  also set (`"your dumbbells"` → `"your dumbbell"`).
+- If `mover` is `"equipment"`, the equipment itself is what's moving (e.g. a
+  curl), so the noun is looked up in `EQUIPMENT_PHRASES` for whichever flag
+  is set, singularized if `single` is also set (`"your dumbbells"` →
+  `"your dumbbell"`).
 - Otherwise, the noun is `"your {mover}"` — the equipment stays put (e.g.
   dumbbells racked through a lunge) and the body part named by `mover` is
   what's actually moving.

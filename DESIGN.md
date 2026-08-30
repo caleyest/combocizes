@@ -21,37 +21,51 @@ Rather than one entry per equipment variant (risk of drift), each exercise carri
 
 - `equipment_options`: list of valid equipment *combos* for this exercise, each a dict of independent per-category flags — `heavy_dumbbells`, `light_dumbbells`, `heavy_band`, `light_band`, `block` — rather than one flat string enum, e.g. `{"heavy_dumbbells": True}`, `{"heavy_dumbbells": True, "single": True}`, `{"light_band": True}`. Dumbbells and bands are split by weight/resistance tier because a student typically has **both** a heavy and a light set on hand at once (two physical sets, not a dial to turn), so availability is naturally two independent yes/no's rather than one choice between them.
 - `single` is **not** a sixth equipment category — it's a modifier on whichever dumbbell tier is chosen (one dumbbell from the pair, held with both hands, goblet-style), not a separate item a student owns.
-- `overrides`: dict keyed by the equipment combo, containing **only** the fields that differ for that variant (`equipment_position`, `direction`, extra refinement cues, etc.). Dicts aren't hashable, so combo keys are normalized to a sorted tuple of `(flag, value)` pairs, e.g. `(("heavy_dumbbells", True),)` or `(("heavy_dumbbells", True), ("single", True))`.
-
-`equipment_position` is a **controlled vocabulary, namespaced per equipment type** — not free text — for the same reason as the other classification fields: authoring consistency and typo-catching, not free-text drift:
-
-```python
-DUMBBELL_POSITIONS = ["racked", "hanging_front", "hanging_side", "overhead", "extended"]
-BAND_POSITIONS = [
-    "around_thighs",
-    "around_ankles",
-    "anchored_underfoot",
-    "anchored_overhead",
-    "in_hands",
-]
-```
-
-`block` has no analogous position vocabulary — it's a fixed surface a hand or foot is elevated on, not something the body holds in variable positions.
-
-It's a **single value**, not a start/end pair — it describes where the equipment is held for the exercise, which is often static even when the exercise itself involves a lot of movement (dumbbells stay `racked` through an entire reverse lunge, since it's the leg that's doing the work, not the arms). The travel that happens *during* a rep is tracked separately by the mover fields below, not by equipment position.
-
-If descriptive detail is needed for cue text later, add it as a separate `equipment_position_note` (free text, never used programmatically) rather than loosening the enum — don't add this field preemptively.
+- `overrides`: dict keyed by the equipment combo, containing **only** the fields that differ for that variant (`direction`, `unilateral`, extra refinement cues, etc.). Dicts aren't hashable, so combo keys are normalized to a sorted tuple of `(flag, value)` pairs, e.g. `(("heavy_dumbbells", True),)` or `(("heavy_dumbbells", True), ("single", True))`.
 
 ### Mover fields (what's actually moving)
 
-Distinct from equipment position: the body part doing the work often isn't the one holding the equipment, and it's usually the thing that travels during the rep.
+There's no separate `equipment_position` field — an earlier design had one, but it was never implemented and would have needed nearly the same vocabulary as `mover_position` anyway. Instead, `mover`/`mover_position_start`/`mover_position_end` are the *only* fields for "where is the thing that's moving":
 
-- `mover` — the body part executing the movement (e.g. `"leg"`, `"arm"`, `"torso"`, `"hip"`), independent of which equipment is selected
-- `mover_position_start` / `mover_position_end` — that body part's position at the start and end of the rep (e.g. a reverse lunge: `mover: "leg"`, start `"standing"`, end `"lunge_back"`)
+- `mover` — what's executing the movement: a body part (e.g. `"leg"`, `"arm"`, `"torso"`, `"hip"`), independent of which equipment is selected, or `"equipment"` when the equipment itself is what travels and what the cue should name (e.g. a curl). Controlled vocabulary — must be a key in `MOVER_POSITIONS` (below).
+- `mover_position_start` / `mover_position_end` — that mover's position at the start and end of the rep (e.g. a reverse lunge: `mover: "leg"`, start `"standing"`, end `"lunge_back"`). Controlled vocabulary, namespaced **per mover** (a leg's travel states and the equipment's are unrelated), for the same reason as the other classification fields — authoring consistency and typo-catching:
 
-Example — reverse lunge with dumbbells: `equipment_position: "racked"` (unchanged throughout) alongside `mover: "leg"`, `mover_position_start: "standing"`, `mover_position_end: "lunge_back"`. The equipment doesn't travel; the leg does.
+```python
+MOVER_POSITIONS = {
+    "equipment": [
+        "racked",
+        "hanging_palms_in",
+        "hanging_palms_front",
+        "hanging_palms_back",
+        "heart's center",
+        "overhead",
+        "extended",
+        "shoulder",
+        "around_thighs",
+        "around_ankles",
+        "anchored_underfoot",
+        "around_wrists",
+    ],
+    "leg": [
+        "standing",
+        "lunge_back",
+        "lunge_forward",
+        "squat_bottom",
+        "kneeling",
+        "raised_bent",
+        "raised_straight",
+    ],
+    "arm": ["at_sides", "extended", "raised", "overhead", "bent"],
+    "torso": ["upright", "rotated_left", "rotated_right", "flexed_forward", "extended_back"],
+    "hip": ["neutral", "hinged", "extended", "raised"],
+}
+```
 
-**Open question:** `mover_position` vocabulary isn't defined yet (unlike equipment positions, body-part travel states are less standardized) — deferred, see section 7.
+`"arm"`/`"torso"`/`"hip"` aren't used by any exercise yet — starter placeholders, adjust the first time a real exercise needs a value not listed.
+
+Example — reverse lunge with dumbbells: `mover: "leg"`, `mover_position_start: "standing"`, `mover_position_end: "lunge_back"`. The dumbbells stay racked and never travel; the leg does — so nothing about the equipment is tracked here at all for this exercise.
+
+**Next step, not built yet:** for an exercise where equipment is held but isn't the mover (like the reverse lunge above), what to do with it — "keep your dumbbells racked at your sides" — is a candidate for a common, shared refinement cue (authored once in the cue bank, referenced via `refinement_cue_ids`) rather than a structured schema field.
 
 Resolution at build time: pick equipment first → shallow-merge `base + overrides[combo_key]` → resolved variant.
 
@@ -68,8 +82,13 @@ Resolution order matters: **choose equipment → then resolve position/cues from
   - `breath` (e.g. "exhale")
   - `action` (verb, e.g. "drive")
   - `action_pool_key` (points into a shared synonym pool for randomized verb variety, e.g. `curl_up: ["drive", "curl", "pull", "draw"]`)
-  - `moved_object` (equipment-resolved noun, keyed by the same combo shape as `overrides`, e.g. `{"heavy_dumbbells": "your dumbbells", "light_dumbbells": "your dumbbells", "heavy_band": "the band", "light_band": "the band"}`, with `single` combos overriding to the singular "your dumbbell")
   - `direction` (fixed, exercise-specific free text — usually doesn't vary by equipment)
+
+  The equipment-resolved object noun (`moved_object`) isn't authored as a
+  field — it's derived from `mover` and the chosen equipment (see the Mover
+  fields section above): `"your dumbbells"` (or `"your dumbbell"` for the
+  single-dumbbell combo) when `mover` is `"equipment"`, otherwise `"your
+  {mover}"`.
 
   Assembled at render time into: `"{breath}, {exercise_name}, {action} {moved_object} {direction}."`
   Said once, on first appearance of the exercise in the class.
@@ -159,5 +178,5 @@ CLI wizard to start (prompts → draft → lock/reroll loop → export finished 
 - Plyo cue shape (breath-per-rep vs. setup+safety+pacing)
 - Exact verb synonym-pool vocabulary
 - Full `muscle_group` taxonomy list
-- `mover_position_start`/`mover_position_end` vocabulary (which values are valid, and whether it's one shared enum or per-`mover` like equipment positions are per-equipment) — **now load-bearing, not just cosmetic**: the combo-selector's in-song chaining (section 5) matches one exercise's `mover_position_end` against the next's `mover_position_start` by plain string equality, so inconsistent naming across exercise authors silently breaks chaining (a real match never happens) rather than raising an error. Worth prioritizing before authoring many more exercises.
 - Equipment-availability-per-day, impact ceiling, difficulty level, and repeat-avoidance-across-classes were proposed as wizard questions but not selected for v1 — worth revisiting later if needed
+- A common/shared refinement cue for equipment that's held but not the mover (e.g. "keep your dumbbells racked at your sides") — see section 1

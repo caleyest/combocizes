@@ -1,6 +1,5 @@
 import pytest
 
-from combocizes.constants import EQUIPMENT_MOVER
 from combocizes.schema import equipment_combo_key, resolve_exercise, resolve_moved_object
 
 
@@ -32,26 +31,34 @@ def test_resolve_exercise_is_a_noop_without_a_matching_override(make_exercise) -
 
 
 def test_resolve_moved_object_uses_mover_when_not_equipment(make_exercise) -> None:
-    exercise = make_exercise(mover="leg")
+    exercise = make_exercise(
+        mover="leg", mover_position_start="standing", mover_position_end="lunge_back"
+    )
     assert resolve_moved_object(exercise, {"heavy_dumbbells": True}) == "your leg"
     assert resolve_moved_object(exercise, {}) == "your leg"
 
 
 def test_resolve_moved_object_derives_equipment_phrase(make_exercise) -> None:
-    exercise = make_exercise(mover=EQUIPMENT_MOVER)
+    exercise = make_exercise(
+        mover="equipment", mover_position_start="hanging_palms_in", mover_position_end="shoulder"
+    )
     assert resolve_moved_object(exercise, {"heavy_dumbbells": True}) == "your dumbbells"
     assert resolve_moved_object(exercise, {"light_band": True}) == "the band"
 
 
 def test_resolve_moved_object_singularizes_for_single(make_exercise) -> None:
-    exercise = make_exercise(mover=EQUIPMENT_MOVER)
+    exercise = make_exercise(
+        mover="equipment", mover_position_start="hanging_palms_in", mover_position_end="shoulder"
+    )
     assert (
         resolve_moved_object(exercise, {"heavy_dumbbells": True, "single": True}) == "your dumbbell"
     )
 
 
 def test_resolve_moved_object_raises_when_equipment_mover_has_no_equipment(make_exercise) -> None:
-    exercise = make_exercise(mover=EQUIPMENT_MOVER)
+    exercise = make_exercise(
+        mover="equipment", mover_position_start="hanging_palms_in", mover_position_end="shoulder"
+    )
     with pytest.raises(KeyError, match="no equipment phrase"):
         resolve_moved_object(exercise, {})
 
@@ -89,3 +96,29 @@ def test_rejects_override_key_with_no_matching_combo(make_exercise) -> None:
 def test_rejects_unknown_refinement_cue_id(make_exercise) -> None:
     with pytest.raises(ValueError, match="unknown refinement_cue_ids"):
         make_exercise(refinement_cue_ids=["not_a_real_cue"])
+
+
+def test_rejects_invalid_mover(make_exercise) -> None:
+    with pytest.raises(ValueError, match="invalid mover"):
+        make_exercise(mover="wing", mover_position_start="tucked", mover_position_end="spread")
+
+
+def test_rejects_mover_position_not_in_movers_vocabulary(make_exercise) -> None:
+    with pytest.raises(ValueError, match="invalid mover_position_start"):
+        make_exercise(
+            mover="leg", mover_position_start="hanging_palms_in", mover_position_end="standing"
+        )
+
+
+def test_accepts_valid_equipment_mover_position(make_exercise) -> None:
+    exercise = make_exercise(
+        mover="equipment", mover_position_start="hanging_palms_in", mover_position_end="shoulder"
+    )
+    assert exercise.mover_position_end == "shoulder"
+
+
+def test_accepts_valid_leg_position(make_exercise) -> None:
+    exercise = make_exercise(
+        mover="leg", mover_position_start="standing", mover_position_end="lunge_back"
+    )
+    assert exercise.mover_position_end == "lunge_back"

@@ -51,18 +51,21 @@ def test_select_combo_prefers_chaining_over_variety(make_exercise) -> None:
     first = make_exercise(
         name="first",
         movement_pattern="pull",
-        mover_position_start="hanging_front",
+        mover="equipment",
+        mover_position_start="hanging_palms_in",
         mover_position_end="shoulder",
     )
     chains = make_exercise(
         name="chains",
         movement_pattern="pull",
+        mover="equipment",
         mover_position_start="shoulder",
         mover_position_end="overhead",
     )
     would_win_on_variety = make_exercise(
         name="would_win_on_variety",
         movement_pattern="push",
+        mover="equipment",
         mover_position_start="racked",
         mover_position_end="overhead",
     )
@@ -81,18 +84,21 @@ def test_select_combo_falls_back_to_variety_when_nothing_chains(make_exercise) -
     first = make_exercise(
         name="first",
         movement_pattern="pull",
-        mover_position_start="hanging_front",
+        mover="equipment",
+        mover_position_start="hanging_palms_in",
         mover_position_end="shoulder",
     )
     no_chain_a = make_exercise(
         name="no_chain_a",
         movement_pattern="pull",
+        mover="equipment",
         mover_position_start="racked",
         mover_position_end="racked",
     )
     no_chain_b = make_exercise(
         name="no_chain_b",
         movement_pattern="push",
+        mover="equipment",
         mover_position_start="racked",
         mover_position_end="racked",
     )
@@ -116,8 +122,9 @@ def test_select_combo_maximizes_pattern_variety_with_no_chaining_signal(make_exe
             pool[name] = make_exercise(
                 name=name,
                 movement_pattern=pattern,
-                mover_position_start="same",
-                mover_position_end="same",
+                mover="equipment",
+                mover_position_start="racked",
+                mover_position_end="racked",
             )
     rng = random.Random(42)
 

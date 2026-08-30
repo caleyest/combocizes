@@ -40,11 +40,12 @@ Both the chaining state and the pattern-usage counts are scoped to one
 `select_combo` call — they reset for the next song, not carried across a
 whole class.
 
-`mover_position_start`/`mover_position_end` are free-text right now
-(DESIGN.md section 7 still hasn't settled a shared vocabulary), so chaining
-is exact-string-match — two exercises describing the same physical
-position with different words simply won't chain. Worth keeping consistent
-across `data/exercises/*.py` files as more get authored.
+`mover_position_start`/`mover_position_end` are validated against
+`constants.MOVER_POSITIONS` (see [Exercise data model](exercise-data.md)),
+but chaining itself is still exact-string-match on top of that — two
+exercises describing the same physical position with different words from
+that vocabulary simply won't chain. Worth keeping consistent across
+`data/exercises/*.py` files as more get authored.
 
 ## Timing
 

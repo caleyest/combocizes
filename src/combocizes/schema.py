@@ -13,10 +13,10 @@ from combocizes.constants import (
     BODY_REGIONS,
     DUMBBELL_FLAGS,
     EQUIPMENT_FLAGS,
-    EQUIPMENT_MOVER,
     EQUIPMENT_PHRASES,
     IMPACT_LEVELS,
     MOVEMENT_PATTERNS,
+    MOVER_POSITIONS,
     MUSCLE_GROUPS,
     SINGLE_MODIFIER,
 )
@@ -80,13 +80,15 @@ class Exercise:
             Must list at least one combo, but a combo may be the empty dict
             `{}` — that's a valid "no equipment" (bodyweight) entry, not an
             omission.
-        mover: The body part executing the movement (e.g. `"leg"`),
-            independent of which equipment is selected — or the sentinel
-            `combocizes.constants.EQUIPMENT_MOVER` ("equipment") when the
-            cue should name the held equipment instead (e.g. a curl).
+        mover: What's executing the movement — a body part (e.g. `"leg"`),
+            independent of which equipment is selected, or `"equipment"`
+            when the cue should name the held equipment instead (e.g. a
+            curl). Must be a key in `combocizes.constants.MOVER_POSITIONS`.
             Drives `resolve_moved_object`.
-        mover_position_start: That body part's position at the start of the rep.
-        mover_position_end: That body part's position at the end of the rep.
+        mover_position_start: `mover`'s position at the start of the rep.
+            Must be one of `combocizes.constants.MOVER_POSITIONS[mover]`.
+        mover_position_end: `mover`'s position at the end of the rep. Same
+            vocabulary as `mover_position_start`.
         primary_cue: The cue said once, on first appearance.
         overrides: Per-combo field overrides, keyed by `equipment_combo_key`.
             Only fields that differ from the base need appear.
@@ -120,6 +122,7 @@ class Exercise:
         self._validate_equipment_options()
         self._validate_overrides()
         self._validate_refinement_cue_ids()
+        self._validate_mover_and_positions()
 
     def _validate_classification_fields(self) -> None:
         checks = [
@@ -163,6 +166,23 @@ class Exercise:
         if unknown:
             raise ValueError(f"{self.name}: unknown refinement_cue_ids {unknown}")
 
+    def _validate_mover_and_positions(self) -> None:
+        if self.mover not in MOVER_POSITIONS:
+            raise ValueError(
+                f"{self.name}: invalid mover {self.mover!r}, "
+                f"expected one of {list(MOVER_POSITIONS)}"
+            )
+        allowed = MOVER_POSITIONS[self.mover]
+        for field_name, value in [
+            ("mover_position_start", self.mover_position_start),
+            ("mover_position_end", self.mover_position_end),
+        ]:
+            if value not in allowed:
+                raise ValueError(
+                    f"{self.name}: invalid {field_name} {value!r} for mover {self.mover!r}, "
+                    f"expected one of {allowed}"
+                )
+
 
 def resolve_exercise(exercise: Exercise, equipment: EquipmentCombo) -> dict:
     """Resolve an exercise's fields for one chosen equipment combo.
@@ -187,19 +207,19 @@ def resolve_moved_object(exercise: Exercise, equipment: EquipmentCombo) -> str:
         equipment: The equipment combo actually chosen.
 
     Returns:
-        If `exercise.mover` is `combocizes.constants.EQUIPMENT_MOVER`, the
-        phrase from `combocizes.constants.EQUIPMENT_PHRASES` for whichever
-        equipment flag is set, singularized (trailing "s" dropped) if
-        `single` is also set. Otherwise `"your {mover}"` — e.g. a lunge
-        (`mover: "leg"`) always resolves to `"your leg"`, since the
-        dumbbells stay racked; a curl (`mover: "equipment"`) resolves to
-        `"your dumbbells"`, or `"your dumbbell"` for the single-dumbbell combo.
+        If `exercise.mover` is `"equipment"`, the phrase from
+        `combocizes.constants.EQUIPMENT_PHRASES` for whichever equipment
+        flag is set, singularized (trailing "s" dropped) if `single` is
+        also set. Otherwise `"your {mover}"` — e.g. a lunge (`mover:
+        "leg"`) always resolves to `"your leg"`, since the dumbbells stay
+        racked; a curl (`mover: "equipment"`) resolves to `"your
+        dumbbells"`, or `"your dumbbell"` for the single-dumbbell combo.
 
     Raises:
-        KeyError: If `mover` is `EQUIPMENT_MOVER` but no flag in `equipment`
+        KeyError: If `mover` is `"equipment"` but no flag in `equipment`
             has a known phrase (e.g. a bodyweight combo).
     """
-    if exercise.mover != EQUIPMENT_MOVER:
+    if exercise.mover != "equipment":
         return f"your {exercise.mover}"
 
     for flag in EQUIPMENT_FLAGS:

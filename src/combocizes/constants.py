@@ -73,3 +73,7 @@ EQUIPMENT_PHRASES = {
     "heavy_band": "the band",
     "light_band": "the band",
 }
+
+# Provisional: DESIGN.md doesn't specify a real per-exercise duration, so a
+# fixed convention stands in for now (DESIGN.md section 7).
+SECONDS_PER_EXERCISE = 30

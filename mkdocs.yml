@@ -35,6 +35,7 @@ nav:
   - Reference:
       - Project structure: reference/project-structure.md
       - Exercise data model: reference/exercise-data.md
+      - Generator: reference/generator.md
   - Reports: https://caleyest.github.io/combocizes/quarto/report.html
 
 markdown_extensions:

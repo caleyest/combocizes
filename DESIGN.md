@@ -23,7 +23,7 @@ Rather than one entry per equipment variant (risk of drift), each exercise carri
 - `single` is **not** a sixth equipment category — it's a modifier on whichever dumbbell tier is chosen (one dumbbell from the pair, held with both hands, goblet-style), not a separate item a student owns.
 - `overrides`: dict keyed by the equipment combo, containing **only** the fields that differ for that variant (`equipment_position`, `direction`, extra refinement cues, etc.). Dicts aren't hashable, so combo keys are normalized to a sorted tuple of `(flag, value)` pairs, e.g. `(("heavy_dumbbells", True),)` or `(("heavy_dumbbells", True), ("single", True))`.
 
-`equipment_position` is a **controlled vocabulary, namespaced per equipment type** — not free text — so the transition-cost model can compare positions by exact match:
+`equipment_position` is a **controlled vocabulary, namespaced per equipment type** — not free text — for the same reason as the other classification fields: authoring consistency and typo-catching, not free-text drift:
 
 ```python
 DUMBBELL_POSITIONS = ["racked", "hanging_front", "hanging_side", "overhead", "extended"]
@@ -123,22 +123,20 @@ Refinement cues stay grouped, not split one-per-file — each cue is only 3-4 li
 | Arms-only song | 3-5 min | 1 | flexible, middle | filters on `muscle_group` |
 | Legs-only song | 5 min | 1 | flexible, middle | filters on `muscle_group` |
 | Abs-only song | 3-5 min | 1 | flexible, middle | filters on `muscle_group` |
-| Full-body combos | remainder (~19-24 min typical) | fills gaps | flexible | main use of movement-pattern variety logic; no transition cost applied within a song, see section 5 |
+| Full-body combos | remainder (~19-24 min typical) | fills gaps | flexible | main use of movement-pattern variety and mover-position chaining logic, see section 5 |
 | Cooldown | ~5 min | 1 | fixed last | last 90 sec = savasana |
 
 **Ordering rule:** don't cluster plyo bursts or focus-songs back to back — intersperse with full-body combo stretches to manage the intensity curve.
 
-**Transition cost applies only at song/segment boundaries, not between moves within a song.** Moves inside a song/combo are assumed to flow seamlessly — the instructor's own sequencing (movement-pattern variety, natural exercise chaining) handles internal flow, not a cost function. The only place the generator scores a transition is the handoff between one segment's last exercise and the next segment's first exercise. See section 5 for what that comparison uses.
+Segment-to-segment transitions (equipment swaps, floor/standing changes) are an expected, known part of moving between songs — not something the generator scores or optimizes against.
 
 Worked time budget (60 min class, midpoint durations): warmup 6 + plyo 12 + arms 4 + legs 5 + abs 4 + cooldown 5 = 36 min fixed/ranged → **~24 min left for full-body combos**. At 50 min (low end of each range): 31 min fixed → **~19 min for full-body combos**.
 
 ## 5. Generator Architecture
 
-- **One parameterized combo-selection function** — "select N exercises from a filtered pool, respecting movement-pattern variety, fit to a time budget" — reused for plyo bursts, focus songs, and full-body combos, just configured differently per `ClassTemplate` segment (pool filter, exercise count, timing scheme). No transition-cost weighting inside this selection — moves within a segment are assumed to flow seamlessly (see section 4).
-- **Transition-cost model, applied only at segment boundaries**: compares the **last exercise of segment N** to the **first exercise of segment N+1** on two fields — `body_position` (same → free, different → cost, since e.g. standing→supine means getting down on the floor) and equipment identity (same equipment → free, different equipment → cost, since it means physically swapping gear). `equipment_position` is *not* part of this comparison — it's static per exercise and gets re-established fresh at the start of any new song regardless of what the previous song ended in.
+- **One parameterized combo-selection function** — "select N exercises from a filtered pool, chained by mover position and varied by movement pattern, fit to a time budget" — reused for plyo bursts, focus songs, and full-body combos, configured differently per `ClassTemplate` segment (pool filter, exercise count, equipment).
+- Each pick after the first prefers a candidate whose `mover_position_start` matches the previous pick's `mover_position_end` — in-song chaining (e.g. a curl ending near the shoulders flowing straight into an overhead press starting racked), the primary preference. Among whichever candidates that leaves (the chained ones, or the full remaining pool if none chain), the exercise whose `movement_pattern` has been used least so far in the selection is preferred; further ties break randomly.
 - Resolution order per exercise instance: choose equipment → resolve position/cue overrides → place in sequence.
-
-**Follow-on idea (not built for v1):** the segment-boundary model guarantees no full reset (no equipment swap, no floor/standing switch) but doesn't guarantee ergonomically elegant chaining *within* a song. That finer quality — e.g. hammer curl ending near the shoulders flowing straight into an overhead press starting racked — comes from `mover_position_end` of one exercise matching `mover_position_start` of the next, not from anything on the equipment side. If combo quality ever needs to be scored/optimized rather than left to curation, `mover_position` matching between consecutive exercises is the mechanism to add — deferred until `mover_position` vocabulary itself is settled (section 7).
 
 ## 6. User Interface
 
@@ -161,6 +159,5 @@ CLI wizard to start (prompts → draft → lock/reroll loop → export finished 
 - Plyo cue shape (breath-per-rep vs. setup+safety+pacing)
 - Exact verb synonym-pool vocabulary
 - Full `muscle_group` taxonomy list
-- `mover_position_start`/`mover_position_end` vocabulary (which values are valid, and whether it's one shared enum or per-`mover` like equipment positions are per-equipment)
-- Exact transition-cost weights/numbers
+- `mover_position_start`/`mover_position_end` vocabulary (which values are valid, and whether it's one shared enum or per-`mover` like equipment positions are per-equipment) — **now load-bearing, not just cosmetic**: the combo-selector's in-song chaining (section 5) matches one exercise's `mover_position_end` against the next's `mover_position_start` by plain string equality, so inconsistent naming across exercise authors silently breaks chaining (a real match never happens) rather than raising an error. Worth prioritizing before authoring many more exercises.
 - Equipment-availability-per-day, impact ceiling, difficulty level, and repeat-avoidance-across-classes were proposed as wizard questions but not selected for v1 — worth revisiting later if needed

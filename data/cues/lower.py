@@ -7,4 +7,8 @@ LOWER_CUES = {
         text="Maybe your back knee taps the floor.",
         tags={"movement_pattern": ["lunge"], "region": "lower"},
     ),
+    "fold_forward_at_top": RefinementCue(
+        text="Fold forward over your legs at the top.",
+        tags={"movement_pattern": ["squat"], "region": "lower"},
+    ),
 }

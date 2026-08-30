@@ -1,0 +1,90 @@
+Category,Move,Equipment,Body,Variations,Plank,Back,Sit/Kneel,Stand (narrow),Stand (Wide),Hinge (Lunge),Variation Count
+1) Push,Push-up,,Chest,"Wide, tricep, diamond, hand release, knees",X,,,,,,6
+1) Push,Tricep overhead,,Tricep,,,X,X,X,X,,1
+1) Push,Lying Maltese Press,,Chest,,,X,,,,,1
+1) Push,Chest press,,Chest,,,X,,,,X,1
+1) Push,Overhead press,,Shoulder,"Narrow, wide, oblique, Arnold",,,X,X,X,,5
+1) Push,Lateral raise,,Shoulder,"V, L, front",,,X,X,X,,4
+1) Push,Tricep kickbacks,,Tricep,,,,X,,X,X,1
+1) Push,Cuban press,,Shoulder,,,,,X,,,1
+1) Push,Chest fly,,Back,,,,,,X,X,1
+1) Push,Calf raise,,Lower,,,,,X,X,,1
+2) Pull,Pull thru,,Core,,X,,,,,,1
+2) Pull,Ankle taps,,Core,Weights,X,,,,,,2
+2) Pull,Superman,,Back,,X,,,,,,1
+2) Pull,Lateral pull thru ,,Shoulder,,,X,,,,,1
+2) Pull,Band pulldown,,Shoulder,,,,X,X,X,X,1
+2) Pull,Row,,Back,"Wide, narrow, reverse, renegade",X,,X,X,X,X,5
+2) Pull,Bicep curl,,Bicep,,,,X,X,X,,1
+2) Pull,Hammer curl,,Bicep,,,,X,X,X,,1
+2) Pull,Cross body curl,,Bicep,,,,X,X,X,,1
+2) Pull,Banded row,,Back,,,,X,,,X,1
+2) Pull,Upright row ,,Shoulder,Pull apart,,,,X,X,,2
+3) Squat ,"Squat walk, banded",,Lower,,,,,X,X,,1
+3) Squat ,Squat ,,Lower,"Elevator, calf raise, jump, band, narrow, pistol, figure 4, sissy (quad), chair, glute kickback, toe tap, heels elevated (quad)",,,,X,,,13
+3) Squat ,Squat to fold,,Lower,,,,,X,,,1
+3) Squat ,Sumo squat,,Lower,,,,,X,X,,1
+4) Lunge,Kneeling lunge,,Lower,"Twists, side reach, quad grab, Samson stretch, lizard",X,,,,,X,6
+4) Lunge,Forward lunge ,,Lower,,,,,X,,X,1
+4) Lunge,Reverse lunge ,,Lower,"Knee drive, oblique drive, Patrick step, floating",,,,X,,X,5
+4) Lunge,Curtsy lunge,,Lower,"Knee drive, oblique drive, Patrick step",,,,X,,X,4
+4) Lunge,Jump lunge,,Lower,,,,,X,,X,1
+4) Lunge,90/90 (static),,Lower,,,,,X,,X,1
+4) Lunge,Lateral Lunge ,,Lower,,,,,,X,,1
+5) Hinge,Donkey kick,,Posterior,,X,,,,,,1
+5) Hinge,Fire hydrant,,Posterior,,X,,,,,,1
+5) Hinge,Ham curl,,Posterior,band,X,,,,,,2
+5) Hinge,Leg kicks,,Posterior,,,X,,,X,,1
+5) Hinge,Bridge,,Posterior,"Single leg, March, hamstring walk",,X,,,,,4
+5) Hinge,V up,,Posterior,,,X,,,,,1
+5) Hinge,Clamshell,,Posterior,Reverse,,X,,,,,2
+5) Hinge,Good morning,,Posterior,,,,,X,X,,1
+5) Hinge,RDL,,Posterior,single leg,,,,X,X,,2
+5) Hinge,Airplane / warrior 3,,Posterior,,,,,X,,,1
+5) Hinge,Swings,,Posterior,,,,,X,,,1
+5) Hinge,Clean,,Posterior,,,,,X,,,1
+6) Core,Down dog,,Posterior,"Dolphin, elbow taps, cheetah",X,,,,,,4
+6) Core,Thread needle,,Core,,X,,,,,,1
+6) Core,Mountain climber (slow),,Core,,X,,,,,,1
+6) Core,Bird dog,,Core,,X,,,,,,1
+6) Core,Plank,,Core,"Toe tap, shoulder tap, hip dips, surrender, to T, row",X,,,,,,7
+6) Core,Twists,,Core,Active stretch,,X,X,,,X,2
+6) Core,Penguins,,Core,,,X,,X,X,,1
+6) Core,Russian twist,,Core,,,X,,,,,1
+6) Core,Bicycle,,Core,,,X,,,,,1
+6) Core,Dead bug,,Core,,,X,,,,,1
+6) Core,Crunch,,Core,"Reverse, double, to twist",,X,,,,,4
+6) Core,Boat,,Core,,,X,,,,,1
+6) Core,Waterfall,,Core,"Leg lifts, criss cross, flutter kick, rope climb",,X,,,,,5
+6) Core,Halos,,Core,,,,X,X,X,,1
+6) Core,Woodchopper,,Core,,,,X,,,X,1
+6) Core,Punches (slow),,Core,,X,,,X,X,,1
+7) Plyo,Mountain climber (fast),,Plyo,,X,,,,,,1
+7) Plyo,Plank jack,,Plyo,,X,,,,,,1
+7) Plyo,Shoulder taps,,Plyo,,X,,,,,,1
+7) Plyo,Forward jumps,,Plyo,to plank jump back / inchworm,,,,X,,,2
+7) Plyo,Skaters,,Plyo,,X,,,,,,1
+7) Plyo,Plank to squat,,Plyo,,X,,,,,,1
+7) Plyo,Burpees,,Plyo,,X,,,,,,1
+7) Plyo,Fast feet,,Plyo,,,,,X,X,,1
+7) Plyo,Run in place,,Plyo,,,,,X,X,,1
+7) Plyo,High knees,,Plyo,"traverse mat, march (slow)",,,,X,X,,3
+7) Plyo,Butt kicks,,Plyo,,,,,X,X,,1
+7) Plyo,Pull throughs,,Plyo,,,,,X,X,,1
+7) Plyo,Jump jump squat,,Plyo,,,,,X,X,,1
+7) Plyo,Heel taps,,Plyo,,,,,X,X,,1
+7) Plyo,Jump rope,,Plyo,,,,,X,X,,1
+7) Plyo,In and outs up mat,,Plyo,,,,,X,X,,1
+7) Plyo,Jump lunge ,,Plyo,,,,,X,,X,1
+7) Plyo,Kick and punch ,,Plyo,,,,,X,,,1
+7) Plyo,Straight arm Shuffle,,Plyo,,,,,X,,,1
+7) Plyo,Punches / upper cut,,Plyo,,X,,,X,X,,1
+7) Plyo,Jumping jacks,,Plyo,,,,,,X,,1
+7) Plyo,Skaters,,Plyo,,,,,,X,,1
+7) Plyo,Touchdown squats ,,Plyo,,,,,,X,,1
+7) Plyo,Jack press ,,Plyo,,,,,,X,,1
+7) Plyo,Gorilla hops,,Plyo,,,,,,X,,1
+7) Plyo,Star jumps,,Plyo,,,,,,X,,1
+7) Plyo,Squat progression via calf raise,,Plyo,,,,,,X,,1
+7) Plyo,Pogo jumps up/down mat,,Plyo,lateral,,,,X,X,,2
+7) Plyo,Snowboard jumps,,Plyo,,,,,,X,,1

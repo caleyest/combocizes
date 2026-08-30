@@ -7,7 +7,7 @@ EXERCISE = Exercise(
     name="reverse_lunge",
     movement_pattern="lunge",
     body_region="lower",
-    muscle_group="quads",
+    muscle_group="lower",
     body_positions=["standing_narrow"],
     unilateral=True,
     impact="low",
@@ -26,7 +26,7 @@ EXERCISE = Exercise(
         breath="Inhale",
         action="step",
         action_pool_key="step_back",
-        direction="back into a lunge",
+        direction="back",
     ),
     refinement_cue_ids=["back_knee_light_tap"],
 )

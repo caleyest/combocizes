@@ -7,4 +7,8 @@ UPPER_CUES = {
         text="Keep your elbows pinned to your ribs.",
         tags={"movement_pattern": ["pull"], "region": "upper"},
     ),
+    "elbows_rotate_out": RefinementCue(
+        text="Rotate your elbows out before you press.",
+        tags={"movement_pattern": ["push"], "region": "upper"},
+    ),
 }

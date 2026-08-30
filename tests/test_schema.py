@@ -108,11 +108,6 @@ def test_rejects_override_key_with_no_matching_combo(make_exercise) -> None:
         make_exercise(overrides={equipment_combo_key({"heavy_band": True}): {"unilateral": True}})
 
 
-def test_rejects_unknown_refinement_cue_id(make_exercise) -> None:
-    with pytest.raises(ValueError, match="unknown refinement_cue_ids"):
-        make_exercise(refinement_cue_ids=["not_a_real_cue"])
-
-
 def test_rejects_invalid_mover(make_exercise) -> None:
     with pytest.raises(ValueError, match="invalid mover"):
         make_exercise(mover="wing", mover_position_start="tucked", mover_position_end="spread")

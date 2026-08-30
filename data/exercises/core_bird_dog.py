@@ -33,5 +33,4 @@ EXERCISE = Exercise(
         action_pool_key="brace_steady",
         direction="steady",
     ),
-    refinement_cue_ids=["opposite_arm_and_leg_extend"],
 )

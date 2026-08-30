@@ -46,7 +46,7 @@ into `src/` and import it back.
 | `utils.py`     | `PROJECT_ROOT`, `DATA_DIR`, `OUTPUT_DIR`, logging, `ensure_dir`. |
 | `constants.py` | Controlled vocabularies for exercise classification and equipment. See [Exercise data model](exercise-data.md). |
 | `schema.py`    | `Exercise`/`PrimaryCue` dataclasses and equipment-combo resolution. See [Exercise data model](exercise-data.md). |
-| `cues.py`      | `RefinementCue` dataclass and the merged `CUE_BANK`. See [Exercise data model](exercise-data.md). |
+| `cues.py`      | `RefinementCue` dataclass and `build_cue_bank`. See [Exercise data model](exercise-data.md). |
 | `loader.py`    | Loads `data/exercises/` into one pool. See [Exercise data model](exercise-data.md). |
 | `combo_selector.py` | Selects one segment's exercises — `select_combo` (chained/varied) and `select_plyo_burst` (impact pattern). See [Generator](generator.md). |
 | `class_template.py` | Assembles a full class: segment timing, ordering, and equipment across songs. See [Generator](generator.md). |

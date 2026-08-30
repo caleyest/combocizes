@@ -2,13 +2,13 @@
 
 from combocizes.cues import RefinementCue
 
-UPPER_CUES = {
-    "elbows_pinned_ribs": RefinementCue(
+UPPER_CUES = [
+    RefinementCue(
         text="Keep your elbows pinned to your ribs.",
-        tags={"movement_pattern": ["pull"], "region": "upper"},
+        exercise_ids=["hammer_curl"],
     ),
-    "elbows_rotate_out": RefinementCue(
+    RefinementCue(
         text="Rotate your elbows out before you press.",
-        tags={"movement_pattern": ["push"], "region": "upper"},
+        exercise_ids=["cuban_press"],
     ),
-}
+]

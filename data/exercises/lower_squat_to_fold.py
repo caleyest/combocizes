@@ -33,5 +33,4 @@ EXERCISE = Exercise(
         action_pool_key="squat_down",
         direction="down",
     ),
-    refinement_cue_ids=["fold_forward_at_top"],
 )

@@ -13,7 +13,7 @@ not-yet-built generator).
 | ------------- | ------------------------------------------------------------------ |
 | `constants.py` | Controlled vocabularies (movement pattern, body region, muscle group, body position, impact, equipment flags, mover positions) and derived shared constants. |
 | `schema.py`    | The `Exercise` and `PrimaryCue` dataclasses, equipment-combo resolution, and moved-object derivation. |
-| `cues.py`      | The `RefinementCue` dataclass and the merged `CUE_BANK`. |
+| `cues.py`      | The `RefinementCue` dataclass and `build_cue_bank`, which merges the category files under `data/cues/`. |
 | `loader.py`    | Globs and loads `data/exercises/*.py` into one pool. |
 
 ## Authoring an exercise
@@ -68,16 +68,17 @@ The primary cue's object noun (e.g. "your dumbbells", "your leg") comes from
 
 ### Refinement cues
 
-`CUE_BANK` is built once, at import time of `combocizes.cues`, by merging
-every category file under `data/cues/` (e.g. `data/cues/upper.py` exposing a
-local `UPPER_CUES` dict). It must exist before any `Exercise` is
-constructed, since cue-ID validation checks against it — which is why
-`cues.py` builds `CUE_BANK` as module-level code rather than behind a
-function an exercise-loading step would need to call first. Cue tags
-(`{"region": "upper"}`) are restricted to `combocizes`'s own vocabularies
-(`movement_pattern`, `region`, `muscle_group`) rather than free text, since
-there's no interactive shortlist to pick them from — but they're purely
-advisory, never auto-injected into a class.
+`build_cue_bank()` merges every category file under `data/cues/` (e.g.
+`data/cues/upper.py` exposing a local `UPPER_CUES` list) into one flat
+`list[RefinementCue]`. Each `RefinementCue` names the exercises it applies to
+via its own `exercise_ids` — that's the only place the exercise/cue
+relationship is authored; `Exercise` carries no reference back into the cue
+bank.
+
+The cue bank isn't built as a module-level constant in `combocizes.cues`: a
+cue's `exercise_ids` can't be validated against real exercise names until the
+exercise pool exists, so `build_cue_bank()` is called from `load_exercises`
+instead, once that pool is assembled.
 
 ## Loading the pool
 
@@ -88,5 +89,7 @@ exercises = load_exercises()  # dict[str, Exercise], keyed by name
 ```
 
 `load_exercises` globs `data/exercises/*.py`, dynamically imports each file,
-and raises `ValueError` on a duplicate exercise name. It's meant to run once
-at startup, not per-generation.
+raises `ValueError` on a duplicate exercise name, and cross-checks every
+cue's `exercise_ids` against the resulting pool — raising `ValueError` if a
+cue names an exercise that doesn't exist. It's meant to run once at startup,
+not per-generation.

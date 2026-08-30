@@ -37,5 +37,4 @@ EXERCISE = Exercise(
         _HEAVY_SINGLE: {"unilateral": True},
         _LIGHT_SINGLE: {"unilateral": True},
     },
-    refinement_cue_ids=["elbows_pinned_ribs"],
 )

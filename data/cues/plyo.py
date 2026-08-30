@@ -2,9 +2,9 @@
 
 from combocizes.cues import RefinementCue
 
-PLYO_CUES = {
-    "arms_reach_overhead": RefinementCue(
+PLYO_CUES = [
+    RefinementCue(
         text="Reach your arms overhead.",
-        tags={"movement_pattern": ["plyo"], "region": "full"},
+        exercise_ids=["jumping_jacks"],
     ),
-}
+]

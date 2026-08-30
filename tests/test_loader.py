@@ -1,5 +1,6 @@
 import pytest
 
+from combocizes.cues import RefinementCue
 from combocizes.loader import load_exercises
 
 _EXERCISE_FILE_TEMPLATE = """
@@ -38,3 +39,20 @@ def test_load_exercises_rejects_duplicate_names(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="duplicate exercise name"):
         load_exercises(tmp_path)
+
+
+def test_load_exercises_rejects_cue_with_unknown_exercise_id(tmp_path) -> None:
+    (tmp_path / "a.py").write_text(_EXERCISE_FILE_TEMPLATE.format(name="hammer_curl"))
+    cue_bank = [RefinementCue(text="...", exercise_ids=["not_a_real_exercise"])]
+
+    with pytest.raises(ValueError, match="unknown exercise_ids"):
+        load_exercises(tmp_path, cue_bank=cue_bank)
+
+
+def test_load_exercises_accepts_cue_with_known_exercise_id(tmp_path) -> None:
+    (tmp_path / "a.py").write_text(_EXERCISE_FILE_TEMPLATE.format(name="hammer_curl"))
+    cue_bank = [RefinementCue(text="...", exercise_ids=["hammer_curl"])]
+
+    pool = load_exercises(tmp_path, cue_bank=cue_bank)
+
+    assert "hammer_curl" in pool

@@ -1,49 +1,44 @@
 import pytest
 
-from combocizes.cues import RefinementCue, _build_cue_bank
+from combocizes.cues import RefinementCue, build_cue_bank
 
 
-def test_refinement_cue_accepts_known_tags() -> None:
-    cue = RefinementCue(text="Keep your elbows pinned.", tags={"region": "upper"})
-    assert cue.tags == {"region": "upper"}
+def test_refinement_cue_exercise_ids_defaults_to_empty() -> None:
+    cue = RefinementCue(text="...")
+    assert cue.exercise_ids == []
 
 
-def test_refinement_cue_rejects_unknown_tag_key() -> None:
-    with pytest.raises(ValueError, match="unknown cue tag key"):
-        RefinementCue(text="...", tags={"joint_focus": "elbow"})
-
-
-def test_refinement_cue_rejects_unknown_tag_value() -> None:
-    with pytest.raises(ValueError, match="invalid 'region' tag value"):
-        RefinementCue(text="...", tags={"region": "uppr"})
-
-
-def test_refinement_cue_accepts_list_tag_values() -> None:
-    cue = RefinementCue(text="...", tags={"movement_pattern": ["pull", "hinge"]})
-    assert cue.tags == {"movement_pattern": ["pull", "hinge"]}
+def test_refinement_cue_accepts_exercise_ids() -> None:
+    cue = RefinementCue(text="...", exercise_ids=["squat_to_fold", "reverse_lunge"])
+    assert cue.exercise_ids == ["squat_to_fold", "reverse_lunge"]
 
 
 def test_build_cue_bank_merges_category_files(tmp_path) -> None:
     (tmp_path / "upper.py").write_text(
-        "from combocizes.cues import RefinementCue\nUPPER = {'a': RefinementCue(text='A')}\n"
+        "from combocizes.cues import RefinementCue\nUPPER = [RefinementCue(text='A')]\n"
     )
     (tmp_path / "lower.py").write_text(
-        "from combocizes.cues import RefinementCue\nLOWER = {'b': RefinementCue(text='B')}\n"
+        "from combocizes.cues import RefinementCue\nLOWER = [RefinementCue(text='B')]\n"
     )
 
-    bank = _build_cue_bank(tmp_path)
+    bank = build_cue_bank(tmp_path)
 
-    assert set(bank) == {"a", "b"}
-    assert bank["a"].text == "A"
+    assert {cue.text for cue in bank} == {"A", "B"}
 
 
-def test_build_cue_bank_rejects_duplicate_ids(tmp_path) -> None:
-    (tmp_path / "upper.py").write_text(
-        "from combocizes.cues import RefinementCue\nUPPER = {'dup': RefinementCue(text='A')}\n"
+def test_build_cue_bank_rejects_file_with_no_cue_list(tmp_path) -> None:
+    (tmp_path / "empty.py").write_text("VALUE = 1\n")
+
+    with pytest.raises(ValueError, match="must expose exactly one list"):
+        build_cue_bank(tmp_path)
+
+
+def test_build_cue_bank_rejects_file_with_multiple_cue_lists(tmp_path) -> None:
+    (tmp_path / "ambiguous.py").write_text(
+        "from combocizes.cues import RefinementCue\n"
+        "A = [RefinementCue(text='A')]\n"
+        "B = [RefinementCue(text='B')]\n"
     )
-    (tmp_path / "lower.py").write_text(
-        "from combocizes.cues import RefinementCue\nLOWER = {'dup': RefinementCue(text='B')}\n"
-    )
 
-    with pytest.raises(ValueError, match="duplicate cue id"):
-        _build_cue_bank(tmp_path)
+    with pytest.raises(ValueError, match="must expose exactly one list"):
+        build_cue_bank(tmp_path)

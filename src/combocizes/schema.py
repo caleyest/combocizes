@@ -21,7 +21,6 @@ from combocizes.constants import (
     MUSCLE_GROUPS,
     SINGLE_MODIFIER,
 )
-from combocizes.cues import CUE_BANK
 
 EquipmentCombo = dict[str, bool]
 ComboKey = tuple[tuple[str, bool], ...]
@@ -101,13 +100,14 @@ class Exercise:
             Defaults to `"front"`.
         overrides: Per-combo field overrides, keyed by `equipment_combo_key`.
             Only fields that differ from the base need appear.
-        refinement_cue_ids: IDs into the shared `combocizes.cues.CUE_BANK`.
         own_refinement_cues: Exercise-specific cues too particular to
-            generalize into the shared bank.
+            generalize into the shared bank. Shared cues are assigned the
+            other way around — via `RefinementCue.exercise_ids` in
+            `combocizes.cues.build_cue_bank()` — not referenced here.
 
     Raises:
-        ValueError: If any classification field, equipment flag, override
-            key, or refinement cue ID isn't drawn from its known set.
+        ValueError: If any classification field, equipment flag, or override
+            key isn't drawn from its known set.
     """
 
     name: str
@@ -125,7 +125,6 @@ class Exercise:
     mat_orientation_start: str = "front"
     mat_orientation_end: str = "front"
     overrides: dict[ComboKey, dict] = field(default_factory=dict)
-    refinement_cue_ids: list[str] = field(default_factory=list)
     own_refinement_cues: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -133,7 +132,6 @@ class Exercise:
         self._validate_body_positions()
         self._validate_equipment_options()
         self._validate_overrides()
-        self._validate_refinement_cue_ids()
         self._validate_mover_and_positions()
         self._validate_mat_orientation()
 
@@ -182,11 +180,6 @@ class Exercise:
             raise ValueError(
                 f"{self.name}: overrides key(s) {unknown} match no equipment_options combo"
             )
-
-    def _validate_refinement_cue_ids(self) -> None:
-        unknown = [cue_id for cue_id in self.refinement_cue_ids if cue_id not in CUE_BANK]
-        if unknown:
-            raise ValueError(f"{self.name}: unknown refinement_cue_ids {unknown}")
 
     def _validate_mover_and_positions(self) -> None:
         if self.mover not in MOVER_POSITIONS:

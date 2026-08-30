@@ -28,5 +28,4 @@ EXERCISE = Exercise(
         action_pool_key="jump_out",
         direction="apart",
     ),
-    refinement_cue_ids=["arms_reach_overhead"],
 )

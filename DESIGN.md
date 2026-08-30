@@ -76,7 +76,7 @@ Example — reverse lunge with dumbbells: `mover: "leg"`, `mover_position_start:
 
 - `mat_orientation_start` / `mat_orientation_end` — which way the student faces on the mat (`"front"` / `"left"` / `"right"` / `"back"`) at the start and end of the rep. Distinct from `mover_position` and `body_positions`: neither can express a turn (a fast-feet drill pivoting to face right isn't a stance-width change or a limb-travel state, it's a change of facing direction). Both default to `"front"`, so only exercises that actually turn — mostly plyo — ever need to set them; the plyo-burst selector chains on them the same way `select_combo` chains on `mover_position`.
 
-**Next step, not built yet:** for an exercise where equipment is held but isn't the mover (like the reverse lunge above), what to do with it — "keep your dumbbells racked at your sides" — is a candidate for a common, shared refinement cue (authored once in the cue bank, referenced via `refinement_cue_ids`) rather than a structured schema field.
+**Next step, not built yet:** for an exercise where equipment is held but isn't the mover (like the reverse lunge above), what to do with it — "keep your dumbbells racked at your sides" — is a candidate for a common, shared refinement cue (authored once in the cue bank, pointed at the relevant exercises via the cue's own `exercise_ids`) rather than a structured schema field.
 
 Resolution at build time: pick equipment first → shallow-merge `base + overrides[combo_key]` → resolved variant.
 
@@ -112,25 +112,24 @@ Resolution order matters: **choose equipment → then resolve position/cues from
   appearances there, where it would just repeat verbatim stuck in the
   primary cue.
 
-- `refinement_cue_ids`: explicit references into the shared cue bank (see below)
-- `own_refinement_cues`: exercise-specific cues too particular to generalize
+- `own_refinement_cues`: exercise-specific cues too particular to generalize into the shared bank. Shared cues aren't referenced from the exercise side at all — see below.
 
-## 2. Refinement Cue Bank (shared, global table)
+## 2. Refinement Cue Bank (shared, flat list)
 
-A separate table, not embedded per-exercise:
+A separate list, not embedded per-exercise:
 
 ```python
-CUE_BANK = {
-  "elbows_pinned_ribs": {
-      "text": "Keep your elbows pinned to your ribs.",
-      "tags": {"joint_focus": "elbow", "movement_pattern": ["curl"], "region": "upper"}
-  },
+CUE_BANK = [
+  RefinementCue(
+      text="Keep your elbows pinned to your ribs.",
+      exercise_ids=["hammer_curl"],
+  ),
   ...
-}
+]
 ```
 
-- Exercises reference cues by ID explicitly — **not** auto-matched by tag at runtime, to avoid a cue silently surfacing in a contextually wrong spot.
-- Tags are used only to **suggest** candidates during authoring (you pick from a shortlist), never to auto-inject at generation time.
+- Cues declare which exercises they apply to explicitly, via `exercise_ids` — no cue ID, no tags, no auto-matching by category at runtime, to avoid a cue silently surfacing in a contextually wrong spot. This is the only place the exercise/cue relationship is authored; `Exercise` carries no reference back to the cue bank, so there's a single copy of the link instead of two that could drift apart.
+- The cue bank isn't a module-level constant: `combocizes.cues.build_cue_bank()` is called from `combocizes.loader.load_exercises`, once the exercise pool exists, since a cue's `exercise_ids` can't be checked against real exercise names any earlier.
 - Editing bank text once propagates everywhere it's referenced — solves the same duplication/drift problem the equipment-override pattern solves.
 - Refinement cues rotate across repeat appearances of an exercise within a class, so the script doesn't repeat verbatim.
 
@@ -140,7 +139,7 @@ CUE_BANK = {
 
 ### Format: Python, not YAML/JSON
 
-Each exercise and cue is authored directly as a Python object (dataclass instance), not YAML/JSON. Since equipment combos are per-category boolean flags and refinement cues are referenced by ID, a Python data file can reference the same constants used elsewhere — `MOVER_POSITIONS`, the `movement_pattern` enum, `CUE_BANK` IDs — instead of duplicating them as bare strings that can silently drift out of sync with the enum. A `@dataclass` with `__post_init__` validation (asserting equipment flags are drawn from the known set, `movement_pattern` is a valid value, referenced cue IDs exist, etc.) catches authoring typos at import time rather than only when the generator runs, without needing a separate schema-validation library (pydantic/jsonschema) for something the project already has enum/constant machinery for. Trade-off: less safe to hand-edit blind than YAML, since loading a file executes code — acceptable here since this is a single-maintainer Python project, not a format meant for non-programmers to edit.
+Each exercise and cue is authored directly as a Python object (dataclass instance), not YAML/JSON. Since equipment combos are per-category boolean flags, a Python data file can reference the same constants used elsewhere — `MOVER_POSITIONS`, the `movement_pattern` enum — instead of duplicating them as bare strings that can silently drift out of sync with the enum. A `@dataclass` with `__post_init__` validation (asserting equipment flags are drawn from the known set, `movement_pattern` is a valid value, etc.) catches authoring typos at import time rather than only when the generator runs, without needing a separate schema-validation library (pydantic/jsonschema) for something the project already has enum/constant machinery for; a cue's `exercise_ids` is the one thing that can't be validated this way, since it's checked against the exercise pool in `load_exercises` instead (see section 2). Trade-off: less safe to hand-edit blind than YAML, since loading a file executes code — acceptable here since this is a single-maintainer Python project, not a format meant for non-programmers to edit.
 
 ### Exercises: one file per exercise
 
@@ -150,7 +149,7 @@ Nested folders by `movement_pattern` were considered (only 7 stable values, less
 
 ### Cues: category files, not one-per-cue
 
-Refinement cues stay grouped, not split one-per-file — each cue is only 3-4 lines, so hundreds of near-empty files would be harder to browse than the single large dict this split is meant to avoid. Instead, `CUE_BANK` is split across a handful of category files (`cues/upper.py`, `cues/lower.py`, `cues/core.py`, `cues/plyo.py`), each exposing a local dict; the same loader merges them into one `CUE_BANK` at import time — the same "split for readability, combine cheaply at load" pattern as exercises, just at a coarser grain.
+Refinement cues stay grouped, not split one-per-file — each cue is only 2-3 lines, so hundreds of near-empty files would be harder to browse than the single large list this split is meant to avoid. Instead, the cue bank is split across a handful of category files (`cues/upper.py`, `cues/lower.py`, `cues/core.py`, `cues/plyo.py`), each exposing a local `list[RefinementCue]`; `build_cue_bank` merges them into one flat list when called — the same "split for readability, combine cheaply at load" pattern as exercises, just at a coarser grain.
 
 ## 4. Class Template (fixed format, drives generation)
 

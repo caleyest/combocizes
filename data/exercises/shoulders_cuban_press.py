@@ -29,5 +29,4 @@ EXERCISE = Exercise(
     ),
     # Elbow-rotation setup detail moved out of the primary cue (action +
     # mover + where, kept minimal) and into a refinement cue instead.
-    refinement_cue_ids=["elbows_rotate_out"],
 )

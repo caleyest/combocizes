@@ -28,5 +28,4 @@ EXERCISE = Exercise(
         action_pool_key="step_back",
         direction="back",
     ),
-    refinement_cue_ids=["back_knee_light_tap"],
 )

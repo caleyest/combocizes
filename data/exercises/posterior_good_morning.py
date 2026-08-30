@@ -1,14 +1,17 @@
 """Good morning — MoveBank: 5) Hinge / Good morning."""
 
 from combocizes.constants import LIGHT_BAND, LIGHT_DUMBBELLS, NO_EQUIPMENT
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="good_morning",
     movement_pattern="hinge",
     body_region="lower",
     muscle_group="posterior",
-    body_positions=["standing_narrow", "standing_wide"],
+    body_positions=[
+        BodyPosition("standing_narrow", "hinge"),
+        BodyPosition("standing_wide", "hinge"),
+    ],
     unilateral=False,
     impact="low",
     equipment_options=[

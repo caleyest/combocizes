@@ -31,7 +31,36 @@ BODY_POSITIONS = [
     "plank",
     "hinge",
     "lunge",
+    "squat",
 ]
+
+# Transition-cost grouping for BODY_POSITIONS (DESIGN.md section 5's
+# stance-transition guardrail): tier 1 is upright (no bridge needed to get
+# there from standing), tier 2 is the bridge stance a tier-1<->tier-3 jump
+# must pass through, tier 3 is the floor. combo_selector.py's guardrail
+# bans a direct tier-1<->tier-3 jump and prefers staying within a pick's
+# current tier over a legal-but-bridge-crossing one.
+BODY_POSITION_TIERS = {
+    "standing_narrow": 1,
+    "standing_wide": 1,
+    "hinge": 1,
+    "lunge": 1,
+    "squat": 1,
+    "kneeling": 2,
+    "seated": 2,
+    "plank": 3,
+    "supine": 3,
+    "prone": 3,
+}
+
+# Any non-upright stance -- fine to end a segment in right before cooldown
+# (DESIGN.md section 4/7: the pre-cooldown segment shouldn't require
+# standing back up before savasana). Derived from BODY_POSITION_TIERS so it
+# can't drift from it.
+LOW_BODY_POSITIONS = frozenset(
+    position for position, tier in BODY_POSITION_TIERS.items() if tier != 1
+)
+
 IMPACT_LEVELS = ["high", "low"]
 
 # Equipment categories a student may have on hand. "single" is a separate

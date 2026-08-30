@@ -1,7 +1,7 @@
 """Chest press — MoveBank: 1) Push / Chest press."""
 
 from combocizes.constants import HEAVY_DUMBBELLS, LIGHT_BAND, LIGHT_DUMBBELLS
-from combocizes.schema import Exercise, PrimaryCue, equipment_combo_key
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue, equipment_combo_key
 
 _HEAVY_SINGLE = equipment_combo_key({"heavy_dumbbells": True, "single": True})
 _LIGHT_SINGLE = equipment_combo_key({"light_dumbbells": True, "single": True})
@@ -11,11 +11,11 @@ EXERCISE = Exercise(
     movement_pattern="push",
     body_region="upper",
     muscle_group="chest",
-    # Both marked positions kept even though they imply different setups
+    # Both held positions kept even though they imply different setups
     # (lying dumbbell press vs. standing band press in a lunge stance) —
     # same movement, different equipment, per DESIGN.md's additive
     # body_positions model.
-    body_positions=["supine", "hinge"],
+    body_positions=[BodyPosition.held("supine"), BodyPosition.held("hinge")],
     unilateral=False,
     impact="low",
     equipment_options=[

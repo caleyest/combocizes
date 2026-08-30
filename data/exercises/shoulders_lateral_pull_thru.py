@@ -5,14 +5,14 @@ assumed here). Worth confirming.
 """
 
 from combocizes.constants import HEAVY_DUMBBELLS
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="lateral_pull_thru",
     movement_pattern="pull",
     body_region="upper",
     muscle_group="shoulders",
-    body_positions=["supine"],
+    body_positions=[BodyPosition.held("supine")],
     unilateral=True,
     impact="low",
     equipment_options=[

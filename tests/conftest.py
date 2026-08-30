@@ -1,6 +1,6 @@
 import pytest
 
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 
 @pytest.fixture
@@ -18,7 +18,7 @@ def make_exercise():
             "movement_pattern": "pull",
             "body_region": "upper",
             "muscle_group": "biceps",
-            "body_positions": ["standing_narrow"],
+            "body_positions": [BodyPosition.held("standing_narrow")],
             "unilateral": False,
             "impact": "low",
             "equipment_options": [{}, {"heavy_dumbbells": True}],

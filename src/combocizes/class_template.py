@@ -31,6 +31,7 @@ from combocizes.constants import (
     LEGS_MUSCLE_GROUPS,
     LIGHT_BAND,
     LIGHT_DUMBBELLS,
+    LOW_BODY_POSITIONS,
     MIN_PLYO_BURST_EXERCISES,
     NO_EQUIPMENT,
     PLYO_TOTAL_MINUTES,
@@ -113,7 +114,13 @@ def build_class(
         then `cooldown`.
 
         Ordering guarantees: no two plyo bursts are ever adjacent, and the
-        segment immediately before cooldown is never a plyo burst.
+        segment immediately before cooldown is never a plyo burst. That
+        segment is also, when the pool allows it, one whose selection ends
+        in a low body position (`combocizes.constants.LOW_BODY_POSITIONS`
+        — tiers 2/3, i.e. anything but standing) so the class doesn't need
+        to stand back up before cooldown/savasana; if no non-plyo segment's
+        selection happens to end low, this isn't forced (same
+        can't-guarantee-don't-crash approach as equipment coverage below).
         Everything else (focus songs, full-body-combo stretches, and plyo
         next to any of those) may appear in any order, including back to
         back — e.g. two full-body-combo songs in a row, useful for hitting
@@ -155,7 +162,6 @@ def build_class(
             for _ in range(num_combo_stretches)
         ),
     ]
-    rng.shuffle(non_plyo_specs)
 
     num_non_plyo = len(non_plyo_specs)
     if plyo_burst_count > num_non_plyo:
@@ -163,6 +169,51 @@ def build_class(
             f"{plyo_burst_count} plyo bursts need at least that many non-plyo segments "
             f"to stay non-adjacent, only {num_non_plyo} available"
         )
+
+    # Equipment: guarantee heavy dumbbells, light dumbbells, and band each
+    # appear at least once by assigning them to three distinct segments up
+    # front; every other segment gets a random combo (bodyweight included).
+    # Assigned before ordering — which three segments get the guaranteed
+    # combos doesn't depend on where they end up in the final sequence.
+    all_specs = [*plyo_specs, *non_plyo_specs]
+    assignable = list(all_specs)
+    rng.shuffle(assignable)
+    band_combo = dict(rng.choice([HEAVY_BAND, LIGHT_BAND]))
+    required_combos = [dict(HEAVY_DUMBBELLS), dict(LIGHT_DUMBBELLS), band_combo]
+    for spec, combo in zip(assignable[:3], required_combos, strict=False):
+        spec["equipment"] = combo
+    for spec in assignable[3:]:
+        spec["equipment"] = rng.choice(EQUIPMENT_CHOICES)
+
+    # Compute every segment's own selection now, before deciding final
+    # order — segments don't chain into each other (each _select_for_kind
+    # call is independent), so this is safe, and it's what lets the
+    # pre-cooldown ordering rule below know each non-plyo segment's actual
+    # ending body position.
+    for spec in all_specs:
+        spec["selection"] = _select_for_kind(
+            pool,
+            spec["kind"],
+            spec["equipment"],
+            exercise_count_for_duration(spec["duration"]),
+            rng,
+        )
+
+    # Pre-cooldown ordering rule: the segment right before cooldown should
+    # end in a low body position, so the transition into cooldown/savasana
+    # doesn't require standing back up first. Guaranteed by construction
+    # when the pool allows it; same "don't retry, don't guarantee if it's
+    # not possible" fallback as the equipment coverage rule above.
+    low_ending_specs = [
+        spec
+        for spec in non_plyo_specs
+        if spec["selection"].body_positions
+        and spec["selection"].body_positions[-1].end in LOW_BODY_POSITIONS
+    ]
+    last_spec = rng.choice(low_ending_specs) if low_ending_specs else rng.choice(non_plyo_specs)
+    remaining_non_plyo = [spec for spec in non_plyo_specs if spec is not last_spec]
+    rng.shuffle(remaining_non_plyo)
+    non_plyo_specs = [*remaining_non_plyo, last_spec]
 
     # K+1 gaps exist around K non-plyo items (before each, plus one at the
     # very end); excluding the final gap guarantees a plyo burst never
@@ -174,18 +225,6 @@ def build_class(
         if i in plyo_gaps:
             ordered_specs.append(next(plyo_iter))
         ordered_specs.append(spec)
-
-    # Equipment: guarantee heavy dumbbells, light dumbbells, and band each
-    # appear at least once by assigning them to three distinct segments up
-    # front; every other segment gets a random combo (bodyweight included).
-    assignable = list(ordered_specs)
-    rng.shuffle(assignable)
-    band_combo = dict(rng.choice([HEAVY_BAND, LIGHT_BAND]))
-    required_combos = [dict(HEAVY_DUMBBELLS), dict(LIGHT_DUMBBELLS), band_combo]
-    for spec, combo in zip(assignable[:3], required_combos, strict=False):
-        spec["equipment"] = combo
-    for spec in assignable[3:]:
-        spec["equipment"] = rng.choice(EQUIPMENT_CHOICES)
 
     no_equipment = dict(NO_EQUIPMENT)
     warmup = ClassSegment(
@@ -213,15 +252,7 @@ def build_class(
 
     middle = [
         ClassSegment(
-            kind=spec["kind"],
-            selection=_select_for_kind(
-                pool,
-                spec["kind"],
-                spec["equipment"],
-                exercise_count_for_duration(spec["duration"]),
-                rng,
-            ),
-            duration_minutes=spec["duration"],
+            kind=spec["kind"], selection=spec["selection"], duration_minutes=spec["duration"]
         )
         for spec in ordered_specs
     ]

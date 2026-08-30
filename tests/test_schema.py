@@ -1,6 +1,11 @@
 import pytest
 
-from combocizes.schema import equipment_combo_key, resolve_exercise, resolve_moved_object
+from combocizes.schema import (
+    BodyPosition,
+    equipment_combo_key,
+    resolve_exercise,
+    resolve_moved_object,
+)
 
 
 def test_equipment_combo_key_is_order_independent() -> None:
@@ -78,14 +83,24 @@ def test_rejects_empty_body_positions(make_exercise) -> None:
         make_exercise(body_positions=[])
 
 
-def test_rejects_invalid_body_position(make_exercise) -> None:
+def test_rejects_invalid_body_position_start(make_exercise) -> None:
     with pytest.raises(ValueError, match="invalid body_positions"):
-        make_exercise(body_positions=["upside_down"])
+        make_exercise(body_positions=[BodyPosition("upside_down", "standing_narrow")])
+
+
+def test_rejects_invalid_body_position_end(make_exercise) -> None:
+    with pytest.raises(ValueError, match="invalid body_positions"):
+        make_exercise(body_positions=[BodyPosition("standing_narrow", "upside_down")])
 
 
 def test_accepts_multiple_body_positions(make_exercise) -> None:
-    exercise = make_exercise(body_positions=["standing_narrow", "standing_wide", "kneeling"])
-    assert exercise.body_positions == ["standing_narrow", "standing_wide", "kneeling"]
+    pairs = [
+        BodyPosition.held("standing_narrow"),
+        BodyPosition.held("standing_wide"),
+        BodyPosition("standing_narrow", "lunge"),
+    ]
+    exercise = make_exercise(body_positions=pairs)
+    assert exercise.body_positions == pairs
 
 
 def test_rejects_empty_equipment_options(make_exercise) -> None:

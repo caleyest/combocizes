@@ -1,7 +1,7 @@
 """Bird dog — MoveBank: 6) Core / Bird dog."""
 
 from combocizes.constants import NO_EQUIPMENT
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="bird_dog",
@@ -10,7 +10,7 @@ EXERCISE = Exercise(
     muscle_group="core",
     # "plank" stands in for quadruped/tabletop, same bucket MoveBank itself
     # uses for donkey kick, fire hydrant, and down dog.
-    body_positions=["plank"],
+    body_positions=[BodyPosition.held("plank")],
     unilateral=True,
     impact="low",
     equipment_options=[

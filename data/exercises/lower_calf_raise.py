@@ -1,14 +1,14 @@
 """Calf raise — MoveBank: 1) Push / Calf raise."""
 
 from combocizes.constants import HEAVY_DUMBBELLS, LIGHT_BAND, LIGHT_DUMBBELLS, NO_EQUIPMENT
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="calf_raise",
     movement_pattern="push",
     body_region="lower",
     muscle_group="lower",
-    body_positions=["standing_narrow", "standing_wide"],
+    body_positions=[BodyPosition.held("standing_narrow"), BodyPosition.held("standing_wide")],
     unilateral=False,
     impact="low",
     equipment_options=[

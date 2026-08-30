@@ -1,14 +1,17 @@
 """Lateral lunge — MoveBank: 4) Lunge / Lateral Lunge."""
 
 from combocizes.constants import HEAVY_DUMBBELLS, LIGHT_BAND, LIGHT_DUMBBELLS, NO_EQUIPMENT
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="lateral_lunge",
     movement_pattern="lunge",
     body_region="lower",
     muscle_group="lower",
-    body_positions=["standing_wide"],
+    # Starts from a normal narrow stance and steps out sideways into the
+    # lunge -- the old single-value body_positions ("standing_wide") named
+    # the exercise's wide *character*, not its actual starting stance.
+    body_positions=[BodyPosition("standing_narrow", "lunge")],
     unilateral=True,
     impact="low",
     equipment_options=[

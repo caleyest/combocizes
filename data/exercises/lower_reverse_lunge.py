@@ -1,14 +1,14 @@
 """Reverse lunge — the worked example from DESIGN.md section 1."""
 
 from combocizes.constants import HEAVY_DUMBBELLS, LIGHT_DUMBBELLS, NO_EQUIPMENT
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="reverse_lunge",
     movement_pattern="lunge",
     body_region="lower",
     muscle_group="lower",
-    body_positions=["standing_narrow"],
+    body_positions=[BodyPosition("standing_narrow", "lunge")],
     unilateral=True,
     impact="low",
     equipment_options=[

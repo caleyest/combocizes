@@ -5,14 +5,14 @@ not yet decomposed into separate files/overrides.
 """
 
 from combocizes.constants import LIGHT_BAND, NO_EQUIPMENT
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="push_up",
     movement_pattern="push",
     body_region="upper",
     muscle_group="chest",
-    body_positions=["plank"],
+    body_positions=[BodyPosition.held("plank")],
     unilateral=False,
     impact="low",
     equipment_options=[dict(NO_EQUIPMENT), dict(LIGHT_BAND)],

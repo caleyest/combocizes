@@ -5,7 +5,7 @@ bundled into this row rather than a true variation, needs its own file.
 """
 
 from combocizes.constants import HEAVY_DUMBBELLS, LIGHT_BAND, LIGHT_DUMBBELLS
-from combocizes.schema import Exercise, PrimaryCue, equipment_combo_key
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue, equipment_combo_key
 
 _HEAVY_SINGLE = equipment_combo_key({"heavy_dumbbells": True, "single": True})
 _LIGHT_SINGLE = equipment_combo_key({"light_dumbbells": True, "single": True})
@@ -15,7 +15,7 @@ EXERCISE = Exercise(
     movement_pattern="pull",
     body_region="upper",
     muscle_group="shoulders",
-    body_positions=["standing_narrow", "standing_wide"],
+    body_positions=[BodyPosition.held("standing_narrow"), BodyPosition.held("standing_wide")],
     unilateral=False,
     impact="low",
     equipment_options=[

@@ -38,7 +38,11 @@ def main() -> None:
         cue = resolved["primary_cue"]
         moved_object = resolve_moved_object(exercise, equipment)
 
-        print(f"{exercise.name} ({exercise.muscle_group}) [{body_position}]")
+        if body_position.start == body_position.end:
+            position_label = body_position.start
+        else:
+            position_label = f"{body_position.start} -> {body_position.end}"
+        print(f"{exercise.name} ({exercise.muscle_group}) [{position_label}]")
         print(
             f"  {cue['breath']}, {exercise.name}, {cue['action']} "
             f"{moved_object} {cue['direction']}."

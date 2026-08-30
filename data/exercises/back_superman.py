@@ -1,7 +1,7 @@
 """Superman — MoveBank: 2) Pull / Superman."""
 
 from combocizes.constants import LIGHT_BAND, LIGHT_DUMBBELLS, NO_EQUIPMENT
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="superman",
@@ -10,7 +10,7 @@ EXERCISE = Exercise(
     # as core-adjacent for filtering purposes, despite muscle_group="back".
     body_region="core",
     muscle_group="back",
-    body_positions=["plank"],
+    body_positions=[BodyPosition.held("plank")],
     unilateral=False,
     impact="low",
     equipment_options=[dict(NO_EQUIPMENT), dict(LIGHT_DUMBBELLS), dict(LIGHT_BAND)],

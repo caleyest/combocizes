@@ -1,14 +1,17 @@
 """Jumping jacks — MoveBank: 7) Plyo / Jumping jacks."""
 
 from combocizes.constants import NO_EQUIPMENT
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="jumping_jacks",
     movement_pattern="plyo",
     body_region="full",
     muscle_group="plyo",
-    body_positions=["standing_wide"],
+    # Feet start together (narrow) and jump apart (wide) -- mover="feet"
+    # below already tracks this at the limb level; this is the whole-body
+    # stance equivalent.
+    body_positions=[BodyPosition("standing_narrow", "standing_wide")],
     unilateral=False,
     impact="high",
     equipment_options=[

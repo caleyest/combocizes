@@ -6,14 +6,14 @@ rather than the standard standing pull-through. Worth confirming.
 """
 
 from combocizes.constants import LIGHT_DUMBBELLS
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="pull_thru",
     movement_pattern="pull",
     body_region="core",
     muscle_group="core",
-    body_positions=["plank"],
+    body_positions=[BodyPosition.held("plank")],
     unilateral=False,
     impact="low",
     equipment_options=[

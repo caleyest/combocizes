@@ -39,6 +39,28 @@ def equipment_combo_key(equipment: EquipmentCombo) -> ComboKey:
     return tuple(sorted(equipment.items()))
 
 
+@dataclass(frozen=True)
+class BodyPosition:
+    """One valid start/end whole-body-stance pair for an exercise.
+
+    Args:
+        start: Whole-body stance at the start of the rep.
+        end: Whole-body stance at the end of the rep. Equal to `start` for
+            the common case of an exercise that returns to where it began
+            (e.g. a curl held kneeling); different only when the rep itself
+            carries the student's stance from one whole-body position to
+            another (e.g. a reverse lunge: `standing_narrow` -> `lunge`).
+    """
+
+    start: str
+    end: str
+
+    @classmethod
+    def held(cls, position: str) -> "BodyPosition":
+        """A stance that doesn't change over the rep (`start == end`)."""
+        return cls(position, position)
+
+
 @dataclass
 class PrimaryCue:
     """The cue spoken once, on an exercise's first appearance in a class.
@@ -72,9 +94,19 @@ class Exercise:
         movement_pattern: One of `combocizes.constants.MOVEMENT_PATTERNS`.
         body_region: One of `combocizes.constants.BODY_REGIONS`.
         muscle_group: One of `combocizes.constants.MUSCLE_GROUPS`.
-        body_positions: The stances this exercise can be done from, e.g.
-            `["standing_narrow", "kneeling"]`. Must list at least one value,
-            each drawn from `combocizes.constants.BODY_POSITIONS`.
+        body_positions: The whole-body stance(s) this exercise can be done
+            from, as start/end pairs, e.g.
+            `[BodyPosition.held("standing_narrow"), BodyPosition.held("kneeling")]`.
+            Most exercises hold one stance throughout (`BodyPosition.held`
+            covers that: `start == end`); a handful genuinely transition
+            (e.g. a reverse lunge: `BodyPosition("standing_narrow",
+            "lunge")`). A list, not a single pair, since some exercises
+            validly work from several alternative stances (e.g. a hammer
+            curl done standing_narrow, standing_wide, kneeling, or from a
+            lunge) — purely additive, unlike equipment, since cue text
+            doesn't change based on stance. Must list at least one pair,
+            each `.start`/`.end` drawn from
+            `combocizes.constants.BODY_POSITIONS`.
         unilateral: Whether the exercise works one side at a time.
         impact: One of `combocizes.constants.IMPACT_LEVELS`.
         equipment_options: Valid equipment combos for this exercise, e.g.
@@ -114,7 +146,7 @@ class Exercise:
     movement_pattern: str
     body_region: str
     muscle_group: str
-    body_positions: list[str]
+    body_positions: list[BodyPosition]
     unilateral: bool
     impact: str
     equipment_options: list[EquipmentCombo]
@@ -151,10 +183,15 @@ class Exercise:
     def _validate_body_positions(self) -> None:
         if not self.body_positions:
             raise ValueError(f"{self.name}: body_positions must list at least one position")
-        unknown = [p for p in self.body_positions if p not in BODY_POSITIONS]
+        unknown = {
+            value
+            for pair in self.body_positions
+            for value in (pair.start, pair.end)
+            if value not in BODY_POSITIONS
+        }
         if unknown:
             raise ValueError(
-                f"{self.name}: invalid body_positions {unknown}, "
+                f"{self.name}: invalid body_positions {sorted(unknown)}, "
                 f"expected values from {BODY_POSITIONS}"
             )
 

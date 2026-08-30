@@ -9,6 +9,7 @@ from combocizes.combo_selector import (
     select_plyo_burst,
 )
 from combocizes.constants import SECONDS_PER_EXERCISE
+from combocizes.schema import BodyPosition
 
 
 def test_exercise_count_for_duration_basic_math() -> None:
@@ -85,10 +86,10 @@ def test_select_combo_prefers_chaining_over_variety(make_exercise) -> None:
         assert selection.exercises[1].name == "chains"
 
 
-def test_select_combo_prefers_stance_over_chaining(make_exercise) -> None:
+def test_select_combo_prefers_exact_match_over_mover_chaining(make_exercise) -> None:
     first = make_exercise(
         name="first",
-        body_positions=["standing_narrow"],
+        body_positions=[BodyPosition.held("standing_narrow")],
         movement_pattern="pull",
         mover="equipment",
         mover_position_start="hanging_palms_in",
@@ -96,7 +97,12 @@ def test_select_combo_prefers_stance_over_chaining(make_exercise) -> None:
     )
     would_win_on_chaining = make_exercise(
         name="would_win_on_chaining",
-        body_positions=["supine"],
+        # Tier 1, same as "first" -- passes the guardrail and the
+        # same-tier preference, but "standing_wide" != "standing_narrow"
+        # exactly, so it still shouldn't beat an exact match. This also
+        # demonstrates the "plane" guardrail: narrow/wide aren't
+        # interchangeable just because both are tier 1.
+        body_positions=[BodyPosition.held("standing_wide")],
         movement_pattern="pull",
         mover="equipment",
         mover_position_start="shoulder",
@@ -104,7 +110,7 @@ def test_select_combo_prefers_stance_over_chaining(make_exercise) -> None:
     )
     same_stance = make_exercise(
         name="same_stance",
-        body_positions=["standing_narrow"],
+        body_positions=[BodyPosition.held("standing_narrow")],
         movement_pattern="push",
         mover="equipment",
         mover_position_start="racked",
@@ -117,8 +123,8 @@ def test_select_combo_prefers_stance_over_chaining(make_exercise) -> None:
 
     if selection.exercises[0].name == "first":
         # "same_stance" must win the second slot even though
-        # "would_win_on_chaining" chains on mover_position, since sharing a
-        # stance is now the primary preference.
+        # "would_win_on_chaining" chains on mover_position, since an exact
+        # body-position match is now the primary preference.
         assert selection.exercises[1].name == "same_stance"
 
 
@@ -159,7 +165,7 @@ def test_select_combo_falls_back_to_variety_when_nothing_chains(make_exercise) -
 def test_select_combo_records_shared_stance_when_available(make_exercise) -> None:
     first = make_exercise(
         name="first",
-        body_positions=["standing_narrow", "standing_wide"],
+        body_positions=[BodyPosition.held("standing_narrow"), BodyPosition.held("standing_wide")],
         movement_pattern="pull",
         mover="equipment",
         mover_position_start="hanging_palms_in",
@@ -167,7 +173,7 @@ def test_select_combo_records_shared_stance_when_available(make_exercise) -> Non
     )
     same_stance = make_exercise(
         name="same_stance",
-        body_positions=["standing_narrow", "standing_wide"],
+        body_positions=[BodyPosition.held("standing_narrow"), BodyPosition.held("standing_wide")],
         movement_pattern="push",
         mover="equipment",
         mover_position_start="racked",
@@ -182,15 +188,15 @@ def test_select_combo_records_shared_stance_when_available(make_exercise) -> Non
     assert selection.body_positions[0] in first.body_positions
     if selection.exercises[1].name == "same_stance":
         # Both exercises support both stances, so the second pick's recorded
-        # position must be whichever one the first pick actually recorded —
-        # not just any position from its own list.
+        # pair must be whichever one the first pick actually recorded — not
+        # just any pair from its own list.
         assert selection.body_positions[1] == selection.body_positions[0]
 
 
 def test_select_combo_records_own_stance_when_nothing_shared(make_exercise) -> None:
     first = make_exercise(
         name="first",
-        body_positions=["standing_narrow"],
+        body_positions=[BodyPosition.held("standing_narrow")],
         movement_pattern="pull",
         mover="equipment",
         mover_position_start="hanging_palms_in",
@@ -198,7 +204,7 @@ def test_select_combo_records_own_stance_when_nothing_shared(make_exercise) -> N
     )
     no_shared_stance = make_exercise(
         name="no_shared_stance",
-        body_positions=["supine"],
+        body_positions=[BodyPosition.held("supine")],
         movement_pattern="push",
         mover="equipment",
         mover_position_start="racked",
@@ -210,18 +216,23 @@ def test_select_combo_records_own_stance_when_nothing_shared(make_exercise) -> N
     selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=rng)
 
     if selection.exercises[1].name == "no_shared_stance":
-        assert selection.body_positions[1] == "supine"
+        # "supine" (tier 3) is a banned jump from "standing_narrow" (tier
+        # 1), but it's the only option left, so the guardrail is silently
+        # skipped rather than blocking the pick.
+        assert selection.body_positions[1] == BodyPosition.held("supine")
 
 
-def test_select_combo_carries_sticky_position_forward_when_still_valid(make_exercise) -> None:
-    # Mirrors a real bug: without stickiness, "row_narrow" (recorded
-    # "plank") -> "tricep_kickbacks" (recorded "hinge") looked like a
-    # stance change even though "row_narrow" could equally have been
-    # recorded "hinge", which "tricep_kickbacks" also supports.
+def test_select_combo_stays_on_the_same_specific_stance_whenever_possible(make_exercise) -> None:
+    # Mirrors a real bug: without this, "row_narrow" (recorded "plank") ->
+    # "tricep_kickbacks" (recorded "hinge") looked like a stance change even
+    # though "row_narrow" could equally have been recorded "hinge", which
+    # "tricep_kickbacks" also supports. Recording always tries an exact
+    # match to the previous pick's recorded end first, so a run of picks
+    # that could all share one specific value (here "hinge") stays on it.
     pool = {
         "row_narrow": make_exercise(
             name="row_narrow",
-            body_positions=["plank", "hinge"],
+            body_positions=[BodyPosition.held("plank"), BodyPosition.held("hinge")],
             movement_pattern="pull",
             mover="equipment",
             mover_position_start="hanging_palms_in",
@@ -229,7 +240,7 @@ def test_select_combo_carries_sticky_position_forward_when_still_valid(make_exer
         ),
         "tricep_kickbacks": make_exercise(
             name="tricep_kickbacks",
-            body_positions=["kneeling", "hinge"],
+            body_positions=[BodyPosition.held("kneeling"), BodyPosition.held("hinge")],
             movement_pattern="push",
             mover="equipment",
             mover_position_start="racked",
@@ -237,7 +248,7 @@ def test_select_combo_carries_sticky_position_forward_when_still_valid(make_exer
         ),
         "chest_fly": make_exercise(
             name="chest_fly",
-            body_positions=["standing_wide", "hinge"],
+            body_positions=[BodyPosition.held("standing_wide"), BodyPosition.held("hinge")],
             movement_pattern="squat",
             mover="equipment",
             mover_position_start="racked",
@@ -248,9 +259,10 @@ def test_select_combo_carries_sticky_position_forward_when_still_valid(make_exer
     for seed in range(20):
         selection = select_combo(pool, {"heavy_dumbbells": True}, count=3, rng=random.Random(seed))
         for i in range(1, len(selection.exercises)):
-            previous_position = selection.body_positions[i - 1]
-            if previous_position in selection.exercises[i].body_positions:
-                assert selection.body_positions[i] == previous_position
+            previous_end = selection.body_positions[i - 1].end
+            next_pairs = selection.exercises[i].body_positions
+            if any(pair.start == previous_end for pair in next_pairs):
+                assert selection.body_positions[i].start == previous_end
 
 
 def test_select_combo_maximizes_pattern_variety_with_no_chaining_signal(make_exercise) -> None:
@@ -274,6 +286,90 @@ def test_select_combo_maximizes_pattern_variety_with_no_chaining_signal(make_exe
         usage[exercise.movement_pattern] = usage.get(exercise.movement_pattern, 0) + 1
 
     assert max(usage.values()) - min(usage.values()) <= 1
+
+
+def test_select_combo_guardrail_excludes_banned_tier_jump(make_exercise) -> None:
+    first = make_exercise(name="first", body_positions=[BodyPosition.held("standing_narrow")])
+    banned = make_exercise(name="banned", body_positions=[BodyPosition.held("plank")])
+    compliant = make_exercise(name="compliant", body_positions=[BodyPosition.held("kneeling")])
+    pool = {e.name: e for e in [first, banned, compliant]}
+
+    for seed in range(20):
+        selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=random.Random(seed))
+        if selection.exercises[0].name == "first":
+            # "banned" (tier 3) is a disallowed direct jump from "first"'s
+            # tier 1, so it's excluded outright, regardless of pattern
+            # usage or mover chaining — only "compliant" (tier 2, the
+            # bridge) is left.
+            assert selection.exercises[1].name == "compliant"
+
+
+def test_select_combo_guardrail_falls_back_when_no_compliant_candidate_exists(
+    make_exercise,
+) -> None:
+    first = make_exercise(name="first", body_positions=[BodyPosition.held("standing_narrow")])
+    only_option = make_exercise(name="only_option", body_positions=[BodyPosition.held("plank")])
+    pool = {e.name: e for e in [first, only_option]}
+
+    for seed in range(20):
+        selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=random.Random(seed))
+        if selection.exercises[0].name == "first":
+            # "only_option" requires a banned tier-1 -> tier-3 jump, but
+            # it's the only candidate left, so the guardrail is silently
+            # skipped for this pick instead of the selection failing.
+            assert selection.exercises[1].name == "only_option"
+
+
+def test_select_combo_allows_tier_2_bridge_transitions(make_exercise) -> None:
+    kneeling_first = make_exercise(
+        name="kneeling_first", body_positions=[BodyPosition.held("kneeling")]
+    )
+    floor_next = make_exercise(name="floor_next", body_positions=[BodyPosition.held("plank")])
+    pool = {e.name: e for e in [kneeling_first, floor_next]}
+
+    for seed in range(20):
+        selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=random.Random(seed))
+        if selection.exercises[0].name == "kneeling_first":
+            # tier 2 (kneeling) -> tier 3 (plank) isn't a banned jump.
+            assert selection.exercises[1].name == "floor_next"
+
+
+def test_select_combo_prefers_same_tier_over_bridge_tier(make_exercise) -> None:
+    first = make_exercise(name="first", body_positions=[BodyPosition.held("standing_narrow")])
+    same_tier = make_exercise(name="same_tier", body_positions=[BodyPosition.held("standing_wide")])
+    bridge_tier = make_exercise(name="bridge_tier", body_positions=[BodyPosition.held("kneeling")])
+    pool = {e.name: e for e in [first, same_tier, bridge_tier]}
+
+    for seed in range(20):
+        selection = select_combo(pool, {"heavy_dumbbells": True}, count=2, rng=random.Random(seed))
+        if selection.exercises[0].name == "first":
+            # Both "same_tier" and "bridge_tier" are legal from tier 1
+            # (standing_narrow), but crossing into the bridge tier is legal,
+            # not free — staying in tier 1 wins.
+            assert selection.exercises[1].name == "same_tier"
+
+
+def test_select_combo_exercise_spanning_tiers_chains_on_both_ends(make_exercise) -> None:
+    narrow_source = make_exercise(
+        name="narrow_source", body_positions=[BodyPosition.held("standing_narrow")]
+    )
+    spanning = make_exercise(
+        name="spanning", body_positions=[BodyPosition("standing_narrow", "standing_wide")]
+    )
+    wide_sink = make_exercise(name="wide_sink", body_positions=[BodyPosition.held("standing_wide")])
+    pool = {e.name: e for e in [narrow_source, spanning, wide_sink]}
+
+    for seed in range(20):
+        selection = select_combo(pool, {"heavy_dumbbells": True}, count=3, rng=random.Random(seed))
+        names = [e.name for e in selection.exercises]
+        positions = selection.body_positions
+        for i in range(1, len(names)):
+            if names[i - 1] == "narrow_source" and names[i] == "spanning":
+                # "spanning"'s own start/end absorbs the narrow -> wide
+                # plane change.
+                assert positions[i] == BodyPosition("standing_narrow", "standing_wide")
+            if names[i - 1] == "spanning" and names[i] == "wide_sink":
+                assert positions[i].start == "standing_wide"
 
 
 def test_select_plyo_burst_filters_to_plyo_movement_pattern(make_exercise) -> None:

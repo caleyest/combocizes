@@ -6,14 +6,14 @@ folded in as an equipment option rather than a separate file.
 """
 
 from combocizes.constants import LIGHT_DUMBBELLS, NO_EQUIPMENT
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="ankle_taps",
     movement_pattern="pull",
     body_region="core",
     muscle_group="core",
-    body_positions=["plank"],
+    body_positions=[BodyPosition.held("plank")],
     unilateral=True,
     impact="low",
     equipment_options=[

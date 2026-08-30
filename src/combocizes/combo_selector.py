@@ -10,8 +10,13 @@ import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from combocizes.constants import SECONDS_PER_EXERCISE
-from combocizes.schema import EquipmentCombo, Exercise, equipment_combo_key
+from combocizes.constants import BODY_POSITION_TIERS, SECONDS_PER_EXERCISE
+from combocizes.schema import BodyPosition, EquipmentCombo, Exercise, equipment_combo_key
+
+# The only banned direct stance-transition jump (DESIGN.md section 5): tier
+# 1 (upright) <-> tier 3 (floor) skips the tier-2 bridge stance
+# (kneeling/seated) either direction needs. Everything else is unrestricted.
+_BANNED_TIER_JUMP = frozenset({1, 3})
 
 
 def exercise_count_for_duration(minutes: float) -> int:
@@ -34,15 +39,15 @@ class ComboSelection:
     Args:
         exercises: The selected exercises, in order.
         equipment: The single equipment combo used for all of them.
-        body_positions: The specific stance recorded for each exercise in
-            `exercises`, same order and length. Only populated by
-            `select_combo` — `select_plyo_burst` doesn't chain on stance,
-            so it leaves this empty.
+        body_positions: The specific start/end `BodyPosition` pair recorded
+            for each exercise in `exercises`, same order and length. Only
+            populated by `select_combo` — `select_plyo_burst` doesn't chain
+            on stance, so it leaves this empty.
     """
 
     exercises: list[Exercise]
     equipment: EquipmentCombo
-    body_positions: list[str] = field(default_factory=list)
+    body_positions: list[BodyPosition] = field(default_factory=list)
 
 
 def _filter_pool(
@@ -71,6 +76,39 @@ def _filter_pool(
     return candidates
 
 
+def _is_banned_tier_jump(start_tier: int, end_tier: int) -> bool:
+    """Whether a direct transition between two stance tiers is disallowed."""
+    return frozenset({start_tier, end_tier}) == _BANNED_TIER_JUMP
+
+
+def _passes_stance_guardrail(exercise: Exercise, previous_end_tier: int) -> bool:
+    """Whether `exercise` has any pair reachable from `previous_end_tier`."""
+    return any(
+        not _is_banned_tier_jump(BODY_POSITION_TIERS[pair.start], previous_end_tier)
+        for pair in exercise.body_positions
+    )
+
+
+def _reaches_tier(exercise: Exercise, tier: int) -> bool:
+    """Whether any of `exercise`'s pairs starts in stance tier `tier`."""
+    return any(BODY_POSITION_TIERS[pair.start] == tier for pair in exercise.body_positions)
+
+
+def _guardrail_compliant_pairs(exercise: Exercise, previous_end_tier: int) -> list[BodyPosition]:
+    """`exercise`'s own pairs that don't require a banned tier jump.
+
+    Falls back to all of `exercise`'s pairs if none are compliant, mirroring
+    the pool-level guardrail's own "silently skip, don't fail the pick"
+    fallback (DESIGN.md section 5).
+    """
+    compliant = [
+        pair
+        for pair in exercise.body_positions
+        if not _is_banned_tier_jump(BODY_POSITION_TIERS[pair.start], previous_end_tier)
+    ]
+    return compliant or list(exercise.body_positions)
+
+
 def select_combo(
     pool: dict[str, Exercise],
     equipment: EquipmentCombo,
@@ -94,32 +132,41 @@ def select_combo(
     Returns:
         The selection: `count` exercises and the equipment combo used.
 
-        Each pick after the first is narrowed by preference, in order:
-        1. Candidates whose `body_positions` overlaps the previous pick's
-           `body_positions` — same stance, no transition needed. Primary
-           preference, since a stance change (e.g. standing to supine)
-           costs real time and disrupts flow more than a mover-position
-           mismatch does.
-        2. Among those (or the full remaining pool if none share a
-           stance), candidates whose `mover_position_start` matches the
-           previous pick's `mover_position_end` — in-song chaining.
-        3. Among whichever set that leaves, the candidate whose
+        Each pick after the first is narrowed by a sequence of filters —
+        see DESIGN.md section 5 for the full rationale, this is the short
+        version:
+        0. Stance-transition guardrail (legality): candidates that can only
+           reach the previous pick's recorded end position via a banned
+           tier jump (tier 1 upright <-> tier 3 floor) are excluded. If
+           this would leave nothing, it's skipped for this one pick rather
+           than failing the selection.
+        0.5. Same-tier preference: among whatever step 0 left, candidates
+           that can stay in the previous pick's own tier are preferred
+           over ones that can only continue via a different (but legal)
+           tier — crossing tiers is allowed, not free.
+        1. Exact match: candidates with a `body_positions` pair whose
+           `.start` equals the previous pick's recorded `.end` exactly —
+           same specific stance, no transition needed. This is also what
+           makes narrow/wide stances non-interchangeable even though both
+           are tier 1 (the "plane" guardrail): they're just never equal.
+        2. Among whichever candidates that leaves, one whose
+           `mover_position_start` matches the previous pick's
+           `mover_position_end` — in-song chaining.
+        3. Among whichever candidates that leaves, the one whose
            `movement_pattern` has been used least so far in this
-           selection is preferred; further ties break randomly via `rng`.
-        All three preferences reset per call — scoped to one song, not
-        the whole class.
+           selection; further ties break randomly via `rng`.
+        Every step reset per call — scoped to one song, not the whole class.
 
-        `ComboSelection.body_positions` records the one stance actually
-        assumed for each pick, parallel to `exercises`. It's sticky: a
-        pick keeps the exact stance the previous pick was recorded in
-        whenever it still supports that stance, so a run of stance-sharing
-        picks reads as one unbroken position rather than drifting pick to
-        pick. Only when the current stance stops being valid does it
-        re-derive — from the overlap with the previous pick's
-        `body_positions` if the stance preference applied (via `rng` if
-        more than one option), else from the pick's own `body_positions`
-        (also via `rng`). The first pick has no previous stance to carry,
-        so it's always drawn from its own `body_positions`.
+        `ComboSelection.body_positions` records the one `BodyPosition` pair
+        actually assumed for each pick, parallel to `exercises`. Choosing
+        it mirrors the same legality -> same-tier -> exact-match ordering
+        above, applied to the winning candidate's own pairs rather than the
+        pool: a pair reachable from the previous pick's tier without a
+        banned jump (falling back to all of the candidate's pairs if none
+        qualify), preferring an exact `.start` match, then a same-tier
+        match, then `rng.choice` among what's left. The first pick has no
+        previous position to reach from, so it's always `rng.choice`d from
+        its own pairs unrestricted.
 
     Raises:
         ValueError: If fewer than `count` exercises remain after filtering.
@@ -135,18 +182,28 @@ def select_combo(
     remaining = list(candidates)
     pattern_usage: dict[str, int] = {}
     selected: list[Exercise] = []
-    selected_positions: list[str] = []
+    selected_positions: list[BodyPosition] = []
     previous: Exercise | None = None
-    current_position: str | None = None
+    previous_end: str | None = None
 
     for _ in range(count):
         eligible = remaining
         if previous is not None:
-            same_stance = [
-                e for e in remaining if set(e.body_positions) & set(previous.body_positions)
+            previous_end_tier = BODY_POSITION_TIERS[previous_end]
+
+            guardrail_ok = [e for e in remaining if _passes_stance_guardrail(e, previous_end_tier)]
+            if guardrail_ok:
+                eligible = guardrail_ok
+
+            same_tier = [e for e in eligible if _reaches_tier(e, previous_end_tier)]
+            if same_tier:
+                eligible = same_tier
+
+            exact_match = [
+                e for e in eligible if any(pair.start == previous_end for pair in e.body_positions)
             ]
-            if same_stance:
-                eligible = same_stance
+            if exact_match:
+                eligible = exact_match
 
             chained = [e for e in eligible if e.mover_position_start == previous.mover_position_end]
             if chained:
@@ -156,25 +213,27 @@ def select_combo(
         tied = [e for e in eligible if pattern_usage.get(e.movement_pattern, 0) == least_used]
         choice = rng.choice(tied)
 
-        # Carry the actual previous stance forward whenever this pick still
-        # supports it, rather than re-deriving from previous's full
-        # body_positions — that would happily "chain" onto a stance the
-        # previous pick wasn't actually recorded in, forcing a transition
-        # that was never necessary.
-        if current_position is not None and current_position in choice.body_positions:
-            position = current_position
+        if previous is None:
+            position = rng.choice(choice.body_positions)
         else:
-            shared = (
-                set(choice.body_positions) & set(previous.body_positions) if previous else set()
-            )
-            position = rng.choice(sorted(shared or choice.body_positions))
+            candidate_pairs = _guardrail_compliant_pairs(choice, previous_end_tier)
+            exact = [pair for pair in candidate_pairs if pair.start == previous_end]
+            if exact:
+                position = rng.choice(exact)
+            else:
+                same_tier_pairs = [
+                    pair
+                    for pair in candidate_pairs
+                    if BODY_POSITION_TIERS[pair.start] == previous_end_tier
+                ]
+                position = rng.choice(same_tier_pairs or candidate_pairs)
 
         selected.append(choice)
         selected_positions.append(position)
         remaining.remove(choice)
         pattern_usage[choice.movement_pattern] = pattern_usage.get(choice.movement_pattern, 0) + 1
         previous = choice
-        current_position = position
+        previous_end = position.end
 
     return ComboSelection(
         exercises=selected, equipment=equipment, body_positions=selected_positions

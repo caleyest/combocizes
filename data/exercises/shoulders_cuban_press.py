@@ -1,14 +1,14 @@
 """Cuban press — MoveBank: 1) Push / Cuban press."""
 
 from combocizes.constants import LIGHT_DUMBBELLS
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="cuban_press",
     movement_pattern="push",
     body_region="upper",
     muscle_group="shoulders",
-    body_positions=["standing_narrow", "standing_wide"],
+    body_positions=[BodyPosition.held("standing_narrow"), BodyPosition.held("standing_wide")],
     unilateral=False,
     impact="low",
     equipment_options=[

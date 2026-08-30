@@ -1,14 +1,14 @@
 """Squat to fold — MoveBank: 3) Squat / Squat to fold."""
 
 from combocizes.constants import HEAVY_DUMBBELLS, LIGHT_BAND, LIGHT_DUMBBELLS, NO_EQUIPMENT
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="squat_to_fold",
     movement_pattern="squat",
     body_region="lower",
     muscle_group="lower",
-    body_positions=["standing_narrow"],
+    body_positions=[BodyPosition("standing_narrow", "squat")],
     unilateral=False,
     impact="low",
     equipment_options=[

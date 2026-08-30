@@ -4,14 +4,14 @@ from combocizes.cues import RefinementCue
 from combocizes.loader import load_exercises
 
 _EXERCISE_FILE_TEMPLATE = """
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name={name!r},
     movement_pattern="pull",
     body_region="upper",
     muscle_group="biceps",
-    body_positions=["standing_narrow"],
+    body_positions=[BodyPosition.held("standing_narrow")],
     unilateral=False,
     impact="low",
     equipment_options=[{{}}],

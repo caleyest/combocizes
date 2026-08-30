@@ -26,3 +26,13 @@ def test_dumbbell_flags_are_a_subset_of_equipment_flags() -> None:
 def test_equipment_phrases_cover_dumbbell_and_band_flags() -> None:
     dumbbell_and_band_flags = {f for f in constants.EQUIPMENT_FLAGS if f != "block"}
     assert set(constants.EQUIPMENT_PHRASES) == dumbbell_and_band_flags
+
+
+def test_body_position_tiers_cover_every_body_position() -> None:
+    assert set(constants.BODY_POSITION_TIERS) == set(constants.BODY_POSITIONS)
+
+
+def test_low_body_positions_are_the_non_tier_1_positions() -> None:
+    assert constants.LOW_BODY_POSITIONS == {
+        position for position, tier in constants.BODY_POSITION_TIERS.items() if tier != 1
+    }

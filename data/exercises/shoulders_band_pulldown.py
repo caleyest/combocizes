@@ -1,14 +1,20 @@
 """Band pulldown — MoveBank: 2) Pull / Band pulldown."""
 
 from combocizes.constants import LIGHT_BAND
-from combocizes.schema import Exercise, PrimaryCue
+from combocizes.schema import BodyPosition, Exercise, PrimaryCue
 
 EXERCISE = Exercise(
     name="band_pulldown",
     movement_pattern="pull",
     body_region="upper",
     muscle_group="shoulders",
-    body_positions=["seated", "kneeling", "standing_narrow", "standing_wide", "hinge"],
+    body_positions=[
+        BodyPosition.held("seated"),
+        BodyPosition.held("kneeling"),
+        BodyPosition.held("standing_narrow"),
+        BodyPosition.held("standing_wide"),
+        BodyPosition.held("hinge"),
+    ],
     unilateral=False,
     impact="low",
     equipment_options=[

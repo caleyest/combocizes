@@ -52,3 +52,6 @@
 - Tests: `just test` · everything: `just check`
 - Render a report: `just render-one <name>` · preview: `just preview <name>`
 - Docs site: `just docs-serve`
+- GitHub CLI (`gh`) is installed but not on PATH in tool shells — invoke it via
+  its full path: `C:\Program Files\GitHub CLI\gh.exe`. Use it for repo tasks
+  (issues, PRs) instead of assuming it's unavailable.

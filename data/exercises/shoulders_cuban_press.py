@@ -1,6 +1,6 @@
 """Cuban press — MoveBank: 1) Push / Cuban press."""
 
-from combocizes.constants import HEAVY_DUMBBELLS, LIGHT_BAND, LIGHT_DUMBBELLS
+from combocizes.constants import LIGHT_DUMBBELLS
 from combocizes.schema import Exercise, PrimaryCue
 
 EXERCISE = Exercise(
@@ -8,13 +8,11 @@ EXERCISE = Exercise(
     movement_pattern="push",
     body_region="upper",
     muscle_group="shoulders",
-    body_positions=["standing_narrow"],
+    body_positions=["standing_narrow", "standing_wide"],
     unilateral=False,
     impact="low",
     equipment_options=[
         dict(LIGHT_DUMBBELLS),
-        dict(HEAVY_DUMBBELLS),
-        dict(LIGHT_BAND),
     ],
     # No bodyweight entry: there's nothing to press against without
     # dumbbells or a band, so a bodyweight combo wouldn't mean anything here.

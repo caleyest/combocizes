@@ -1,6 +1,6 @@
 """Superman — MoveBank: 2) Pull / Superman."""
 
-from combocizes.constants import LIGHT_DUMBBELLS, NO_EQUIPMENT
+from combocizes.constants import LIGHT_BAND, LIGHT_DUMBBELLS, NO_EQUIPMENT
 from combocizes.schema import Exercise, PrimaryCue
 
 EXERCISE = Exercise(
@@ -13,10 +13,7 @@ EXERCISE = Exercise(
     body_positions=["plank"],
     unilateral=False,
     impact="low",
-    equipment_options=[
-        dict(NO_EQUIPMENT),
-        dict(LIGHT_DUMBBELLS),
-    ],
+    equipment_options=[dict(NO_EQUIPMENT), dict(LIGHT_DUMBBELLS), dict(LIGHT_BAND)],
     # mover is "back", not "arm" or "leg": both arms and both legs lift
     # together, and naming either one singular ("lift your arm") wrongly
     # implies one side. "back" isn't a paired body part, so the simplest

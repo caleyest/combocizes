@@ -1,4 +1,4 @@
-"""Hammer curl — demonstrates the `single` modifier and a real override."""
+"""Bicep curl — MoveBank: 2) Pull / Bicep curl."""
 
 from combocizes.constants import HEAVY_DUMBBELLS, LIGHT_BAND, LIGHT_DUMBBELLS
 from combocizes.schema import Exercise, PrimaryCue, equipment_combo_key
@@ -7,11 +7,11 @@ _HEAVY_SINGLE = equipment_combo_key({"heavy_dumbbells": True, "single": True})
 _LIGHT_SINGLE = equipment_combo_key({"light_dumbbells": True, "single": True})
 
 EXERCISE = Exercise(
-    name="hammer_curl",
+    name="bicep_curl",
     movement_pattern="pull",
     body_region="upper",
     muscle_group="biceps",
-    body_positions=["standing_narrow", "standing_wide", "kneeling", "lunge"],
+    body_positions=["seated", "kneeling", "standing_narrow", "standing_wide"],
     unilateral=False,
     impact="low",
     equipment_options=[
@@ -21,11 +21,11 @@ EXERCISE = Exercise(
         {"heavy_dumbbells": True, "single": True},
         {"light_dumbbells": True, "single": True},
     ],
-    # mover is "equipment": the dumbbells are what travel and what the cue
-    # should name ("curl your dumbbells up"), not a body part. Neutral grip
-    # (palms facing in) throughout is what makes this a "hammer" curl.
+    # mover_position_start is "hanging_palms_front" (standard curl grip),
+    # not "hanging_palms_in" like hammer_curl — that grip difference is
+    # what distinguishes a bicep curl from a hammer curl.
     mover="equipment",
-    mover_position_start="hanging_palms_in",
+    mover_position_start="hanging_palms_front",
     mover_position_end="shoulder",
     primary_cue=PrimaryCue(
         breath="Exhale",
@@ -33,7 +33,6 @@ EXERCISE = Exercise(
         action_pool_key="curl_up",
         direction="up toward your shoulders",
     ),
-    # Holding a single dumbbell turns this into a one-arm-at-a-time exercise.
     overrides={
         _HEAVY_SINGLE: {"unilateral": True},
         _LIGHT_SINGLE: {"unilateral": True},

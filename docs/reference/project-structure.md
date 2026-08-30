@@ -40,10 +40,14 @@ into `src/` and import it back.
 
 ## Package modules
 
-| Module      | Responsibility                                                |
-| ----------- | ------------------------------------------------------------- |
-| `core.py`   | Primary domain logic. **Placeholder** — replace with the real thing. |
-| `utils.py`  | `PROJECT_ROOT`, `DATA_DIR`, `OUTPUT_DIR`, logging, `ensure_dir`. |
+| Module         | Responsibility                                                |
+| -------------- | ------------------------------------------------------------- |
+| `core.py`      | Primary domain logic. **Placeholder** — replace with the real thing. |
+| `utils.py`     | `PROJECT_ROOT`, `DATA_DIR`, `OUTPUT_DIR`, logging, `ensure_dir`. |
+| `constants.py` | Controlled vocabularies for exercise classification and equipment. See [Exercise data model](exercise-data.md). |
+| `schema.py`    | `Exercise`/`PrimaryCue` dataclasses and equipment-combo resolution. See [Exercise data model](exercise-data.md). |
+| `cues.py`      | `RefinementCue` dataclass and the merged `CUE_BANK`. See [Exercise data model](exercise-data.md). |
+| `loader.py`    | Loads `data/exercises/` into one pool. See [Exercise data model](exercise-data.md). |
 
 As the project grows, split `core.py` by concern rather than letting it sprawl,
 and add a reference page here for each substantial new module.

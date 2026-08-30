@@ -1,0 +1,210 @@
+"""The exercise schema: one record per exercise, equipment resolved by merge.
+
+See DESIGN.md section 1. Each `Exercise` carries every equipment variant it
+supports as a single record — `equipment_options` lists the valid combos,
+`overrides` holds only the fields that differ per combo — rather than one
+record per variant, to avoid the two copies drifting apart over edits.
+"""
+
+from dataclasses import asdict, dataclass, field
+
+from combocizes.constants import (
+    BODY_POSITIONS,
+    BODY_REGIONS,
+    DUMBBELL_FLAGS,
+    EQUIPMENT_FLAGS,
+    EQUIPMENT_MOVER,
+    EQUIPMENT_PHRASES,
+    IMPACT_LEVELS,
+    MOVEMENT_PATTERNS,
+    MUSCLE_GROUPS,
+    SINGLE_MODIFIER,
+)
+from combocizes.cues import CUE_BANK
+
+EquipmentCombo = dict[str, bool]
+ComboKey = tuple[tuple[str, bool], ...]
+
+
+def equipment_combo_key(equipment: EquipmentCombo) -> ComboKey:
+    """Normalize an equipment combo into a hashable, order-independent key.
+
+    Args:
+        equipment: Per-category flags, e.g. `{"heavy_dumbbells": True}`. The
+            empty dict `{}` is a valid combo, meaning no equipment (bodyweight).
+
+    Returns:
+        The flags as a sorted tuple of `(flag, value)` pairs.
+    """
+    return tuple(sorted(equipment.items()))
+
+
+@dataclass
+class PrimaryCue:
+    """The cue spoken once, on an exercise's first appearance in a class.
+
+    Assembled at render time into:
+    `"{breath}, {exercise_name}, {action} {moved_object} {direction}."`
+
+    Args:
+        breath: E.g. "Exhale".
+        action: The verb, e.g. "drive".
+        action_pool_key: Key into a shared synonym pool for verb variety.
+        direction: Fixed, exercise-specific free text.
+
+    Note:
+        The moved-object noun isn't authored here — `resolve_moved_object`
+        derives it from `Exercise.mover` and the chosen equipment.
+    """
+
+    breath: str
+    action: str
+    action_pool_key: str
+    direction: str
+
+
+@dataclass
+class Exercise:
+    """A single exercise, covering every equipment variant it supports.
+
+    Args:
+        name: Unique exercise name.
+        movement_pattern: One of `combocizes.constants.MOVEMENT_PATTERNS`.
+        body_region: One of `combocizes.constants.BODY_REGIONS`.
+        muscle_group: One of `combocizes.constants.MUSCLE_GROUPS`.
+        body_position: One of `combocizes.constants.BODY_POSITIONS`.
+        unilateral: Whether the exercise works one side at a time.
+        impact: One of `combocizes.constants.IMPACT_LEVELS`.
+        equipment_options: Valid equipment combos for this exercise, e.g.
+            `[{"heavy_dumbbells": True}, {"heavy_dumbbells": True, "single": True}]`.
+            Must list at least one combo, but a combo may be the empty dict
+            `{}` — that's a valid "no equipment" (bodyweight) entry, not an
+            omission.
+        mover: The body part executing the movement (e.g. `"leg"`),
+            independent of which equipment is selected — or the sentinel
+            `combocizes.constants.EQUIPMENT_MOVER` ("equipment") when the
+            cue should name the held equipment instead (e.g. a curl).
+            Drives `resolve_moved_object`.
+        mover_position_start: That body part's position at the start of the rep.
+        mover_position_end: That body part's position at the end of the rep.
+        primary_cue: The cue said once, on first appearance.
+        overrides: Per-combo field overrides, keyed by `equipment_combo_key`.
+            Only fields that differ from the base need appear.
+        refinement_cue_ids: IDs into the shared `combocizes.cues.CUE_BANK`.
+        own_refinement_cues: Exercise-specific cues too particular to
+            generalize into the shared bank.
+
+    Raises:
+        ValueError: If any classification field, equipment flag, override
+            key, or refinement cue ID isn't drawn from its known set.
+    """
+
+    name: str
+    movement_pattern: str
+    body_region: str
+    muscle_group: str
+    body_position: str
+    unilateral: bool
+    impact: str
+    equipment_options: list[EquipmentCombo]
+    mover: str
+    mover_position_start: str
+    mover_position_end: str
+    primary_cue: PrimaryCue
+    overrides: dict[ComboKey, dict] = field(default_factory=dict)
+    refinement_cue_ids: list[str] = field(default_factory=list)
+    own_refinement_cues: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self._validate_classification_fields()
+        self._validate_equipment_options()
+        self._validate_overrides()
+        self._validate_refinement_cue_ids()
+
+    def _validate_classification_fields(self) -> None:
+        checks = [
+            ("movement_pattern", self.movement_pattern, MOVEMENT_PATTERNS),
+            ("body_region", self.body_region, BODY_REGIONS),
+            ("muscle_group", self.muscle_group, MUSCLE_GROUPS),
+            ("body_position", self.body_position, BODY_POSITIONS),
+            ("impact", self.impact, IMPACT_LEVELS),
+        ]
+        for field_name, value, allowed in checks:
+            if value not in allowed:
+                raise ValueError(
+                    f"{self.name}: invalid {field_name} {value!r}, expected one of {allowed}"
+                )
+
+    def _validate_equipment_options(self) -> None:
+        # `equipment_options` must be non-empty, but an entry may itself be
+        # the empty dict `{}` — that's a valid "no equipment" combo.
+        if not self.equipment_options:
+            raise ValueError(f"{self.name}: equipment_options must list at least one combo")
+        known_flags = {*EQUIPMENT_FLAGS, SINGLE_MODIFIER}
+        for combo in self.equipment_options:
+            unknown = set(combo) - known_flags
+            if unknown:
+                raise ValueError(f"{self.name}: unknown equipment flag(s) {unknown} in {combo!r}")
+            if combo.get(SINGLE_MODIFIER) and not any(combo.get(flag) for flag in DUMBBELL_FLAGS):
+                raise ValueError(
+                    f"{self.name}: {SINGLE_MODIFIER!r} requires a dumbbell flag in {combo!r}"
+                )
+
+    def _validate_overrides(self) -> None:
+        known_combo_keys = {equipment_combo_key(combo) for combo in self.equipment_options}
+        unknown = set(self.overrides) - known_combo_keys
+        if unknown:
+            raise ValueError(
+                f"{self.name}: overrides key(s) {unknown} match no equipment_options combo"
+            )
+
+    def _validate_refinement_cue_ids(self) -> None:
+        unknown = [cue_id for cue_id in self.refinement_cue_ids if cue_id not in CUE_BANK]
+        if unknown:
+            raise ValueError(f"{self.name}: unknown refinement_cue_ids {unknown}")
+
+
+def resolve_exercise(exercise: Exercise, equipment: EquipmentCombo) -> dict:
+    """Resolve an exercise's fields for one chosen equipment combo.
+
+    Args:
+        exercise: The exercise to resolve.
+        equipment: The equipment combo actually chosen, e.g. `{"heavy_dumbbells": True}`.
+
+    Returns:
+        The exercise's fields as a dict, with the matching `overrides` entry
+        (if any) shallow-merged on top of the base fields.
+    """
+    combo_key = equipment_combo_key(equipment)
+    return {**asdict(exercise), **exercise.overrides.get(combo_key, {})}
+
+
+def resolve_moved_object(exercise: Exercise, equipment: EquipmentCombo) -> str:
+    """Derive the moved-object noun for an exercise's primary cue.
+
+    Args:
+        exercise: The exercise to resolve.
+        equipment: The equipment combo actually chosen.
+
+    Returns:
+        If `exercise.mover` is `combocizes.constants.EQUIPMENT_MOVER`, the
+        phrase from `combocizes.constants.EQUIPMENT_PHRASES` for whichever
+        equipment flag is set, singularized (trailing "s" dropped) if
+        `single` is also set. Otherwise `"your {mover}"` — e.g. a lunge
+        (`mover: "leg"`) always resolves to `"your leg"`, since the
+        dumbbells stay racked; a curl (`mover: "equipment"`) resolves to
+        `"your dumbbells"`, or `"your dumbbell"` for the single-dumbbell combo.
+
+    Raises:
+        KeyError: If `mover` is `EQUIPMENT_MOVER` but no flag in `equipment`
+            has a known phrase (e.g. a bodyweight combo).
+    """
+    if exercise.mover != EQUIPMENT_MOVER:
+        return f"your {exercise.mover}"
+
+    for flag in EQUIPMENT_FLAGS:
+        if equipment.get(flag) and flag in EQUIPMENT_PHRASES:
+            phrase = EQUIPMENT_PHRASES[flag]
+            return phrase.removesuffix("s") if equipment.get(SINGLE_MODIFIER) else phrase
+
+    raise KeyError(f"{exercise.name}: no equipment phrase for combo {equipment!r}")

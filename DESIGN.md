@@ -27,7 +27,13 @@ Rather than one entry per equipment variant (risk of drift), each exercise carri
 
 ```python
 DUMBBELL_POSITIONS = ["racked", "hanging_front", "hanging_side", "overhead", "extended"]
-BAND_POSITIONS = ["around_thighs", "around_ankles", "anchored_underfoot", "anchored_overhead", "in_hands"]
+BAND_POSITIONS = [
+    "around_thighs",
+    "around_ankles",
+    "anchored_underfoot",
+    "anchored_overhead",
+    "in_hands",
+]
 ```
 
 `block` has no analogous position vocabulary — it's a fixed surface a hand or foot is elevated on, not something the body holds in variable positions.

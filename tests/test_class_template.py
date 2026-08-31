@@ -110,6 +110,19 @@ def test_build_class_guarantees_equipment_coverage(full_pool) -> None:
     )
 
 
+def test_build_class_never_assigns_heavy_dumbbells_to_plyo(full_pool) -> None:
+    # full_pool's plyo exercises do support heavy_dumbbells (like every
+    # other combo) -- this checks build_class's own assignment logic keeps
+    # heavy dumbbells away from plyo regardless, not that the pool lacks it.
+    for seed in range(20):
+        segments = build_class(full_pool, minutes=60, rng=random.Random(seed))
+        for segment in segments:
+            if segment.kind == "plyo":
+                assert equipment_combo_key(segment.selection.equipment) != equipment_combo_key(
+                    dict(HEAVY_DUMBBELLS)
+                )
+
+
 def test_build_class_raises_when_minutes_too_short(full_pool) -> None:
     with pytest.raises(ValueError, match="too short to fit the fixed segments"):
         build_class(full_pool, minutes=10, rng=random.Random(0))

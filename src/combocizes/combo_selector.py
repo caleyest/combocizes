@@ -6,6 +6,7 @@ time budget" — reused for plyo bursts, focus songs, and full-body combos,
 configured differently per segment (pool filter, exercise count, equipment).
 """
 
+import math
 import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -19,17 +20,22 @@ from combocizes.schema import BodyPosition, EquipmentCombo, Exercise, equipment_
 _BANNED_TIER_JUMP = frozenset({1, 3})
 
 
-def exercise_count_for_duration(minutes: float) -> int:
+def exercise_count_for_duration(
+    minutes: float, seconds_per_exercise: float = SECONDS_PER_EXERCISE
+) -> int:
     """Convert a segment's minute budget into an exercise count.
 
     Args:
         minutes: The segment's time budget, in minutes.
+        seconds_per_exercise: Assumed duration of one exercise, in seconds.
+            Defaults to `SECONDS_PER_EXERCISE`; callers building a plyo
+            segment pass `SECONDS_PER_PLYO_EXERCISE` instead.
 
     Returns:
-        How many exercises fit that budget at `SECONDS_PER_EXERCISE` each,
+        How many exercises fit that budget at `seconds_per_exercise` each,
         rounded down to at least 1.
     """
-    return max(1, int(minutes * 60 // SECONDS_PER_EXERCISE))
+    return max(1, int(minutes * 60 // seconds_per_exercise))
 
 
 @dataclass
@@ -288,40 +294,46 @@ def select_plyo_burst(
 ) -> ComboSelection:
     """Select `count` plyo exercises, mostly high impact with recovery breaks.
 
-    Movement-pattern variety doesn't apply here — every plyo-pool candidate
-    already shares `movement_pattern == "plyo"`. The structuring rule
-    (DESIGN.md section 4: "active recovery via alternating high/low
+    A burst repeats a small set of distinct exercises rather than requiring
+    `count` different ones — like an actual circuit — so the pool only
+    needs `ceil(count / 2)` eligible candidates, not `count`. Movement-
+    pattern variety doesn't otherwise apply here — every plyo-pool
+    candidate already shares `movement_pattern == "plyo"`. The structuring
+    rule (DESIGN.md section 4: "active recovery via alternating high/low
     impact") is a repeating pattern of 2 or 3 high-impact exercises
     followed by one low-impact recovery exercise, not strict 1:1
     alternation. Within whichever impact a slot requires, a candidate
     whose `mat_orientation_start` matches the previous pick's
     `mat_orientation_end` is preferred, since a burst has no rest between
-    exercises and shouldn't force an unplanned turn mid-burst.
+    exercises and shouldn't force an unplanned turn mid-burst — this
+    preference applies at every slot, including repeats.
 
     Args:
         pool: Candidate exercises, filtered here to `movement_pattern == "plyo"`.
         equipment: The equipment combo this burst uses.
-        count: How many exercises to select.
+        count: How many exercise slots to fill.
         rng: Source of randomness for the high:low ratio, tie-breaking, and
             orientation-chaining fallback. Defaults to a fresh `random.Random()`.
 
     Returns:
         The selection: `count` exercises following a 2:1 or 3:1 high:low
         impact pattern (e.g. high, high, low, high, high, low, ...,
-        starting high), and the equipment combo used.
+        starting high), drawn from at most `ceil(count / 2)` distinct
+        exercises, and the equipment combo used.
 
     Raises:
-        ValueError: If fewer than `count` plyo exercises support `equipment`,
-            or (when `count > 1`) either impact level has no candidates,
-            making the pattern impossible.
+        ValueError: If fewer than `ceil(count / 2)` distinct plyo exercises
+            support `equipment`, or (when `count > 1`) either impact level
+            has no candidates, making the pattern impossible.
     """
     rng = rng or random.Random()
     candidates = _filter_pool(pool, equipment, lambda e: e.movement_pattern == "plyo")
 
-    if len(candidates) < count:
+    unique_count = max(1, math.ceil(count / 2))
+    if len(candidates) < unique_count:
         raise ValueError(
             f"only {len(candidates)} eligible plyo exercise(s) for equipment {equipment!r}, "
-            f"need {count}"
+            f"need at least {unique_count} distinct ones to fill a burst of {count} with repeats"
         )
     if count > 1:
         has_high = any(e.impact == "high" for e in candidates)
@@ -334,13 +346,20 @@ def select_plyo_burst(
 
     impact_sequence = _impact_sequence(count, high_to_low_ratio=rng.randint(2, 3))
 
-    remaining = list(candidates)
+    # `unintroduced` holds candidates not yet used in this burst; `used`
+    # holds the ones picked so far. Once `used` reaches `unique_count`,
+    # slots draw only from `used` (repeats), instead of ever exhausting
+    # `unintroduced` outright.
+    unintroduced = list(candidates)
+    used: list[Exercise] = []
     selected: list[Exercise] = []
     previous: Exercise | None = None
 
     for impact in impact_sequence:
-        same_impact = [e for e in remaining if e.impact == impact]
-        bucket = same_impact or remaining
+        bucket = unintroduced if len(used) < unique_count else used
+
+        same_impact = [e for e in bucket if e.impact == impact]
+        bucket = same_impact or bucket
 
         eligible = bucket
         if previous is not None:
@@ -350,7 +369,9 @@ def select_plyo_burst(
 
         choice = rng.choice(eligible)
         selected.append(choice)
-        remaining.remove(choice)
+        if choice in unintroduced:
+            unintroduced.remove(choice)
+            used.append(choice)
         previous = choice
 
     return ComboSelection(exercises=selected, equipment=equipment)

@@ -134,10 +134,17 @@ MOVER_LOCATIONS = {
         "raised_bent",
         "raised_straight",
         "straddle",
+        # Added alongside plyo_butt_kicks.py, for the heel driving toward
+        # the glute.
+        "butt_kick",
     ],
     # "legs" (plural) mirrors "leg" for bilateral leg movements (both bend
     # together, e.g. a squat) — same reasoning as "feet" vs. "leg" above.
-    "legs": ["standing", "squat", "kneeling", "calf_raise", "hinge"],
+    # "plank" added alongside plyo_burpees.py/plyo_plank_to_squat.py, for
+    # exercises that start with both legs kicked back into a plank. "jump"
+    # added alongside plyo_squat_jumps.py, for the airborne extended top of
+    # an explosive jump -- distinct from a controlled "standing".
+    "legs": ["standing", "squat", "kneeling", "calf_raise", "hinge", "plank", "jump"],
     "arm": ["at_sides", "extended", "raised", "overhead", "bent"],
     # "arms" (plural) mirrors "arm" for bilateral bodyweight pressing moves
     # (e.g. a push-up), same reasoning as "legs" vs. "leg".
@@ -157,23 +164,39 @@ MOVER_LOCATIONS = {
     # together — "your feet" reads correctly as inherently plural, where
     # "your leg" would wrongly imply one side.
     "feet": ["together", "apart"],
+    # "knee" is for exercises where a single knee drives toward the torso
+    # while the rest of the body holds a plank (e.g. plyo_mountain_climbers.py)
+    # -- distinct from "leg", whose vocabulary assumes a standing/kneeling
+    # base rather than a plank.
+    "knee": ["plank", "toward_elbow"],
 }
 
 # The direction half of the split described above -- only present for
-# movers that actually have a direction axis; a mover absent here (arm,
-# arms, hip, back, feet) simply never takes a non-None direction_start/
+# movers that actually have a direction axis; a mover absent here (arms,
+# hip, back, feet) simply never takes a non-None direction_start/
 # direction_end. Values are still required fields on Exercise (None is a
 # valid value, but it must be stated explicitly) -- see schema.Exercise.
 MOVER_DIRECTIONS = {
     "equipment": ["palms_in", "palms_front", "palms_back", "palms_up", "left", "right"],
     "leg": ["back", "forward", "lateral", "kickstand"],
-    "legs": ["up", "down"],
+    # Added alongside plyo_fast_feet.py/plyo_run_in_place.py/plyo_heel_taps.py,
+    # for the alternating side a rapid-tempo bilateral cardio move favors.
+    "legs": ["up", "down", "right", "left"],
     "torso": ["left", "right"],
+    # Added alongside plyo_shoulder_taps.py/plyo_plank_surrenders.py, for
+    # the alternating side an unsupported arm reaches toward.
+    "arm": ["right", "left"],
+    # Added alongside plyo_mountain_climbers.py, for the alternating knee.
+    "knee": ["right", "left"],
 }
 
 # Provisional: DESIGN.md doesn't specify a real per-exercise duration, so a
 # fixed convention stands in for now (DESIGN.md section 7).
 SECONDS_PER_EXERCISE = 45
+
+# Plyo reps are quicker than a strength move's -- a shorter, separately
+# tunable convention for exercise_count_for_duration's plyo-burst calls.
+SECONDS_PER_PLYO_EXERCISE = 30
 
 # Which way the student faces on the mat, distinct from body_positions
 # (stance width/shape) -- a fast-feet drill turning to face right can't be
@@ -226,3 +249,9 @@ EQUIPMENT_CHOICES = [
     dict(HEAVY_BAND),
     dict(LIGHT_BAND),
 ]
+
+# Heavy dumbbells are never appropriate for a plyo burst -- landing a jump
+# with a heavy weight in hand is a safety issue, not just a data-modeling
+# one. build_class uses this instead of EQUIPMENT_CHOICES when assigning
+# equipment to a plyo segment.
+PLYO_EQUIPMENT_CHOICES = [combo for combo in EQUIPMENT_CHOICES if combo != dict(HEAVY_DUMBBELLS)]

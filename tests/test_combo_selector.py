@@ -21,6 +21,13 @@ def test_exercise_count_for_duration_floors_at_one() -> None:
     assert exercise_count_for_duration(0.001) == 1
 
 
+def test_exercise_count_for_duration_respects_custom_seconds_per_exercise() -> None:
+    minutes = 4 * 30 / 60
+    assert exercise_count_for_duration(minutes, seconds_per_exercise=30) == 4
+    # Same minutes, default (45s) slice: fewer exercises fit.
+    assert exercise_count_for_duration(minutes) == 2
+
+
 def test_select_combo_filters_by_equipment(make_exercise) -> None:
     pool = {
         "a": make_exercise(name="a", equipment_options=[{"heavy_dumbbells": True}]),
@@ -591,10 +598,27 @@ def test_select_plyo_burst_filters_to_plyo_movement_pattern(make_exercise) -> No
 
 
 def test_select_plyo_burst_raises_when_pool_too_small(make_exercise) -> None:
+    # A burst repeats a small set of exercises (needs only ceil(count / 2)
+    # distinct ones), so count=3 (needs 2 distinct) is the smallest count
+    # that a 1-exercise pool can't satisfy.
     pool = {"a": make_exercise(name="a", movement_pattern="plyo", impact="high")}
 
-    with pytest.raises(ValueError, match="only 1 eligible"):
-        select_plyo_burst(pool, {"heavy_dumbbells": True}, count=2)
+    with pytest.raises(ValueError, match="only 1 eligible.*need at least 2"):
+        select_plyo_burst(pool, {"heavy_dumbbells": True}, count=3)
+
+
+def test_select_plyo_burst_repeats_exercises_within_a_burst(make_exercise) -> None:
+    pool = {
+        "a": make_exercise(name="a", movement_pattern="plyo", impact="high"),
+        "b": make_exercise(name="b", movement_pattern="plyo", impact="low"),
+    }
+
+    # count=4 only needs ceil(4 / 2) = 2 distinct exercises -- exactly what
+    # the pool has -- so filling all 4 slots requires reusing at least one.
+    selection = select_plyo_burst(pool, {"heavy_dumbbells": True}, count=4, rng=random.Random(0))
+
+    assert len(selection.exercises) == 4
+    assert {e.name for e in selection.exercises} == {"a", "b"}
 
 
 def test_select_plyo_burst_raises_when_missing_an_impact_level(make_exercise) -> None:
